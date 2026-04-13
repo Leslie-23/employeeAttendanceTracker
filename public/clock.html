@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clock In/Out</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; padding: 20px;
+    }
+    .card {
+      background: white; border-radius: 16px; padding: 40px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.1); text-align: center;
+      max-width: 400px; width: 100%;
+    }
+    .name { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+    .status { font-size: 16px; color: #666; margin-bottom: 32px; }
+    .status .badge {
+      display: inline-block; padding: 4px 12px; border-radius: 20px;
+      font-weight: 600; font-size: 14px;
+    }
+    .badge.in { background: #d4edda; color: #155724; }
+    .badge.out { background: #f8d7da; color: #721c24; }
+    .btn {
+      display: block; width: 100%; padding: 16px; border: none;
+      border-radius: 12px; font-size: 18px; font-weight: 600;
+      cursor: pointer; transition: transform 0.1s, opacity 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-in { background: #28a745; color: white; }
+    .btn-out { background: #dc3545; color: white; }
+    .message { margin-top: 20px; padding: 12px; border-radius: 8px; font-size: 14px; }
+    .message.success { background: #d4edda; color: #155724; }
+    .message.error { background: #f8d7da; color: #721c24; }
+    .loading { color: #999; font-size: 18px; }
+    .time { color: #999; font-size: 13px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="card" id="app">
+    <div class="loading">Loading...</div>
+  </div>
+
+  <script>
+    const token = window.location.pathname.split('/clock/')[1];
+    const app = document.getElementById('app');
+
+    let employeeName = '';
+    let currentStatus = 'out';
+
+    async function loadStatus() {
+      try {
+        const res = await fetch(`/api/status/${token}`);
+        if (!res.ok) {
+          app.innerHTML = '<div class="loading">Employee not found.</div>';
+          return;
+        }
+        const data = await res.json();
+        employeeName = data.name;
+        currentStatus = data.status;
+        render();
+      } catch {
+        app.innerHTML = '<div class="loading">Connection error. Please try again.</div>';
+      }
+    }
+
+    function render(message) {
+      const nextAction = currentStatus === 'out' ? 'in' : 'out';
+      const btnClass = nextAction === 'in' ? 'btn-in' : 'btn-out';
+      const btnText = nextAction === 'in' ? 'Clock In' : 'Clock Out';
+      const lastTime = '';
+
+      app.innerHTML = `
+        <div class="name">${employeeName}</div>
+        <div class="status">
+          Currently: <span class="badge ${currentStatus}">${currentStatus === 'in' ? 'Clocked In' : 'Clocked Out'}</span>
+        </div>
+        <button class="btn ${btnClass}" id="clockBtn">${btnText}</button>
+        ${message || ''}
+      `;
+
+      document.getElementById('clockBtn').addEventListener('click', doClock);
+    }
+
+    function getLocation() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => resolve(null),
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      });
+    }
+
+    async function doClock() {
+      const btn = document.getElementById('clockBtn');
+      btn.disabled = true;
+      btn.textContent = 'Getting location...';
+
+      const location = await getLocation();
+
+      btn.textContent = 'Submitting...';
+
+      try {
+        const res = await fetch(`/api/clock/${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(location || {})
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          render(`<div class="message error">${data.error}</div>`);
+          return;
+        }
+
+        currentStatus = data.type === 'in' ? 'in' : 'out';
+        const time = new Date(data.timestamp).toLocaleTimeString();
+        render(`
+          <div class="message success">
+            Clocked ${data.type} at ${time}
+          </div>
+        `);
+      } catch {
+        render('<div class="message error">Connection error. Please try again.</div>');
+      }
+    }
+
+    loadStatus();
+  </script>
+</body>
+</html>

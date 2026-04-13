@@ -1,0 +1,19 @@
+{
+  "name": "attendance",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.4.1",
+    "qrcode": "^1.5.4",
+    "uuid": "^13.0.0"
+  }
+}

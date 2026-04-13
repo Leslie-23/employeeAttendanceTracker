@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attendance Admin</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f2f5; padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { margin-bottom: 24px; }
+    .section {
+      background: white; border-radius: 12px; padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 24px;
+    }
+    h2 { margin-bottom: 16px; font-size: 18px; }
+    .add-form { display: flex; gap: 12px; margin-bottom: 20px; }
+    .add-form input {
+      flex: 1; padding: 10px 14px; border: 1px solid #ddd;
+      border-radius: 8px; font-size: 15px;
+    }
+    .add-form button {
+      padding: 10px 20px; background: #007bff; color: white;
+      border: none; border-radius: 8px; font-size: 15px; cursor: pointer;
+    }
+    .add-form button:hover { background: #0056b3; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; }
+    th { font-weight: 600; color: #555; font-size: 13px; text-transform: uppercase; }
+    .qr-cell img { width: 80px; height: 80px; cursor: pointer; }
+    .actions button {
+      padding: 6px 12px; border: none; border-radius: 6px;
+      cursor: pointer; font-size: 13px; margin-right: 4px;
+    }
+    .btn-qr { background: #e9ecef; }
+    .btn-delete { background: #f8d7da; color: #721c24; }
+    .btn-print { background: #d4edda; color: #155724; }
+
+    /* QR Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 100;
+      justify-content: center; align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: white; border-radius: 16px; padding: 32px;
+      text-align: center; max-width: 350px; width: 90%;
+    }
+    .modal h3 { margin-bottom: 16px; }
+    .modal img { width: 250px; height: 250px; }
+    .modal .url { font-size: 12px; color: #666; margin-top: 8px; word-break: break-all; }
+    .modal button {
+      margin-top: 16px; padding: 8px 20px; border: none;
+      border-radius: 8px; cursor: pointer; font-size: 14px;
+    }
+    .btn-close { background: #e9ecef; }
+    .btn-dl { background: #007bff; color: white; margin-right: 8px; }
+
+    .filter-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-row input, .filter-row select {
+      padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;
+    }
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 12px;
+      font-size: 12px; font-weight: 600;
+    }
+    .badge.in { background: #d4edda; color: #155724; }
+    .badge.out { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Attendance Admin</h1>
+
+    <!-- Add Employee -->
+    <div class="section">
+      <h2>Employees</h2>
+      <div class="add-form">
+        <input type="text" id="empName" placeholder="Employee name">
+        <button onclick="addEmployee()">Add Employee</button>
+      </div>
+      <table>
+        <thead><tr><th>Name</th><th>QR</th><th>Actions</th></tr></thead>
+        <tbody id="empList"></tbody>
+      </table>
+    </div>
+
+    <!-- Attendance Log -->
+    <div class="section">
+      <h2>Attendance Log</h2>
+      <div class="filter-row">
+        <input type="date" id="filterDate" onchange="loadAttendance()">
+        <select id="filterEmployee" onchange="loadAttendance()">
+          <option value="">All Employees</option>
+        </select>
+      </div>
+      <table>
+        <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>IP</th></tr></thead>
+        <tbody id="attendanceList"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- QR Modal -->
+  <div class="modal-overlay" id="qrModal">
+    <div class="modal">
+      <h3 id="qrName"></h3>
+      <img id="qrImg">
+      <div class="url" id="qrUrl"></div>
+      <div style="margin-top: 16px;">
+        <button class="btn-dl" onclick="downloadQR()">Download</button>
+        <button class="btn-close" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let employees = [];
+
+    async function loadEmployees() {
+      const res = await fetch('/api/employees');
+      employees = await res.json();
+
+      const list = document.getElementById('empList');
+      list.innerHTML = employees.map(e => `
+        <tr>
+          <td>${e.name}</td>
+          <td><button class="actions btn-qr" onclick="showQR('${e.qrToken}', '${e.name}')">View QR</button></td>
+          <td class="actions">
+            <button class="btn-print" onclick="printQR('${e.qrToken}', '${e.name}')">Print</button>
+            <button class="btn-delete" onclick="deleteEmployee('${e._id}')">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+
+      // Update filter dropdown
+      const select = document.getElementById('filterEmployee');
+      const current = select.value;
+      select.innerHTML = '<option value="">All Employees</option>' +
+        employees.map(e => `<option value="${e._id}">${e.name}</option>`).join('');
+      select.value = current;
+    }
+
+    async function addEmployee() {
+      const input = document.getElementById('empName');
+      const name = input.value.trim();
+      if (!name) return;
+
+      await fetch('/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+
+      input.value = '';
+      loadEmployees();
+    }
+
+    async function deleteEmployee(id) {
+      if (!confirm('Delete this employee and all their records?')) return;
+      await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+      loadEmployees();
+      loadAttendance();
+    }
+
+    async function showQR(token, name) {
+      const res = await fetch(`/api/qr/${token}`);
+      const data = await res.json();
+
+      document.getElementById('qrName').textContent = name;
+      document.getElementById('qrImg').src = data.qr;
+      document.getElementById('qrUrl').textContent = data.url;
+      document.getElementById('qrModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('qrModal').classList.remove('active');
+    }
+
+    function downloadQR() {
+      const img = document.getElementById('qrImg');
+      const name = document.getElementById('qrName').textContent;
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = `QR-${name}.png`;
+      a.click();
+    }
+
+    function printQR(token, name) {
+      showQR(token, name).then(() => {
+        setTimeout(() => {
+          const printWin = window.open('', '_blank');
+          const img = document.getElementById('qrImg').src;
+          printWin.document.write(`
+            <html><body style="text-align:center;font-family:sans-serif;padding:40px;">
+              <h2>${name}</h2>
+              <img src="${img}" style="width:300px;height:300px;">
+              <p style="color:#666;margin-top:16px;">Scan to clock in/out</p>
+            </body></html>
+          `);
+          printWin.document.close();
+          printWin.print();
+        }, 500);
+      });
+    }
+
+    async function loadAttendance() {
+      const date = document.getElementById('filterDate').value;
+      const employeeId = document.getElementById('filterEmployee').value;
+
+      const params = new URLSearchParams();
+      if (date) params.set('date', date);
+      if (employeeId) params.set('employeeId', employeeId);
+
+      const res = await fetch(`/api/attendance?${params}`);
+      const records = await res.json();
+
+      document.getElementById('attendanceList').innerHTML = records.map(r => `
+        <tr>
+          <td>${r.employeeId ? r.employeeId.name : 'Unknown'}</td>
+          <td><span class="badge ${r.type}">${r.type === 'in' ? 'IN' : 'OUT'}</span></td>
+          <td>${new Date(r.timestamp).toLocaleString()}</td>
+          <td>${r.ip || '-'}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" style="text-align:center;color:#999;">No records</td></tr>';
+    }
+
+    // Init
+    document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+    loadEmployees();
+    loadAttendance();
+  </script>
+</body>
+</html>

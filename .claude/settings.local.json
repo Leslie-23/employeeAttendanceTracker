@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(tasklist)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool)",
+      "Bash(taskkill //F //IM node.exe)"
+    ]
+  }
+}
