@@ -231,18 +231,50 @@
       document.getElementById('clockBtn').addEventListener('click', doClock);
     }
 
-    function getLocation() {
+    // Uses watchPosition to stream readings and picks the freshest high-accuracy
+    // fix. getCurrentPosition can hand back a stale cached reading on mobile even
+    // with maximumAge:0, so we filter by pos.timestamp age instead.
+    function getLocation(onProgress) {
       return new Promise((resolve) => {
         if (!navigator.geolocation) return resolve(null);
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy
-          }),
-          () => resolve(null),
-          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+
+        let best = null;
+        let done = false;
+        const started = Date.now();
+
+        const finish = (watchId) => {
+          if (done) return;
+          done = true;
+          navigator.geolocation.clearWatch(watchId);
+          resolve(best);
+        };
+
+        const watchId = navigator.geolocation.watchPosition(
+          (pos) => {
+            const age = Date.now() - pos.timestamp;
+            const reading = {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+              age
+            };
+
+            if (onProgress) onProgress(reading);
+
+            // Ignore obviously cached readings (older than 10s)
+            if (age > 10000) return;
+
+            if (!best || reading.accuracy < best.accuracy) best = reading;
+
+            // Good enough: fresh AND accurate to within 40m
+            if (age < 5000 && reading.accuracy <= 40) finish(watchId);
+          },
+          () => finish(watchId),
+          { enableHighAccuracy: true, timeout: 25000, maximumAge: 0 }
         );
+
+        // Hard cap: 18s. Return whatever fresh reading we have, even if not perfect.
+        setTimeout(() => finish(watchId), 18000);
       });
     }
 
@@ -251,7 +283,9 @@
       btn.disabled = true;
       btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2.5px;"></div> VERIFYING...';
 
-      const location = await getLocation();
+      const location = await getLocation((r) => {
+        btn.innerHTML = `<div class="spinner" style="width:18px;height:18px;border-width:2.5px;"></div> GPS ±${Math.round(r.accuracy)}m...`;
+      });
 
       btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2.5px;"></div> SUBMITTING...';
 
