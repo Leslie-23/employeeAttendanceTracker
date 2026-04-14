@@ -234,19 +234,23 @@
     // Uses watchPosition to stream readings and picks the freshest high-accuracy
     // fix. getCurrentPosition can hand back a stale cached reading on mobile even
     // with maximumAge:0, so we filter by pos.timestamp age instead.
+    // Returns { location, error } — error is 'denied' | 'unavailable' | 'timeout' | 'unsupported'.
     function getLocation(onProgress) {
       return new Promise((resolve) => {
-        if (!navigator.geolocation) return resolve(null);
+        if (!navigator.geolocation) return resolve({ error: 'unsupported' });
 
         let best = null;
         let done = false;
-        const started = Date.now();
+        let lastError = null;
 
         const finish = (watchId) => {
           if (done) return;
           done = true;
           navigator.geolocation.clearWatch(watchId);
-          resolve(best);
+          if (best) return resolve({ location: best });
+          if (lastError === 1) return resolve({ error: 'denied' });
+          if (lastError === 2) return resolve({ error: 'unavailable' });
+          return resolve({ error: 'timeout' });
         };
 
         const watchId = navigator.geolocation.watchPosition(
@@ -269,7 +273,11 @@
             // Good enough: fresh AND accurate to within 40m
             if (age < 5000 && reading.accuracy <= 40) finish(watchId);
           },
-          () => finish(watchId),
+          (err) => {
+            lastError = err.code;
+            // Permission denied is terminal — no point waiting
+            if (err.code === 1) finish(watchId);
+          },
           { enableHighAccuracy: true, timeout: 25000, maximumAge: 0 }
         );
 
@@ -278,15 +286,89 @@
       });
     }
 
+    // Returns 'granted' | 'denied' | 'prompt' | 'unknown'. Safari iOS <16 has no
+    // Permissions API for geolocation, so we fall back to 'unknown'.
+    async function getGeoPermission() {
+      if (!navigator.permissions) return 'unknown';
+      try {
+        const status = await navigator.permissions.query({ name: 'geolocation' });
+        return status.state;
+      } catch {
+        return 'unknown';
+      }
+    }
+
+    function renderLocationBlocked() {
+      const ua = navigator.userAgent;
+      let steps;
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        steps = `
+          <li>Open <b>Settings → Safari → Location</b> and set to <b>Ask</b> or <b>Allow</b></li>
+          <li>Also check <b>Settings → Privacy &amp; Security → Location Services</b> is ON</li>
+          <li>Return here and reload the page</li>`;
+      } else if (/Android/i.test(ua)) {
+        steps = `
+          <li>Tap the <b>lock icon</b> in the address bar → <b>Permissions</b> → <b>Location → Allow</b></li>
+          <li>Make sure phone <b>Location</b> is ON in quick settings</li>
+          <li>Reload the page</li>`;
+      } else {
+        steps = `
+          <li>Click the <b>lock icon</b> in the address bar → allow <b>Location</b></li>
+          <li>Reload the page</li>`;
+      }
+
+      render(`<div class="message error">
+        <div>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:-3px;margin-right:6px;"><path d="M12 2a7 7 0 017 7c0 5-7 13-7 13S5 14 5 9a7 7 0 017-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+          <b>Location blocked</b>
+          <div style="margin-top:8px;font-weight:500;font-size:12px;line-height:1.5;">
+            Your browser is blocking location access. Enable it, then tap Clock ${currentStatus === 'out' ? 'In' : 'Out'} again.
+          </div>
+          <ol style="margin:10px 0 0 18px;font-size:12px;font-weight:500;line-height:1.6;">
+            ${steps}
+          </ol>
+        </div>
+      </div>`);
+    }
+
     async function doClock() {
       const btn = document.getElementById('clockBtn');
       btn.disabled = true;
-      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2.5px;"></div> VERIFYING...';
 
-      const location = await getLocation((r) => {
+      // If the user previously denied geolocation, the browser won't re-prompt
+      // automatically — jump straight to the "how to unblock" instructions.
+      const permission = await getGeoPermission();
+      if (permission === 'denied') {
+        renderLocationBlocked();
+        return;
+      }
+
+      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2.5px;"></div> REQUESTING GPS...';
+
+      const result = await getLocation((r) => {
         btn.innerHTML = `<div class="spinner" style="width:18px;height:18px;border-width:2.5px;"></div> GPS ±${Math.round(r.accuracy)}m...`;
       });
 
+      if (result.error === 'denied') {
+        renderLocationBlocked();
+        return;
+      }
+      if (result.error === 'unavailable' || result.error === 'unsupported') {
+        render(`<div class="message error">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20"/><path d="M12 8v4M12 16h.01"/></svg>
+          GPS unavailable. Step outside or near a window and try again.
+        </div>`);
+        return;
+      }
+      if (result.error === 'timeout') {
+        render(`<div class="message error">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20"/><path d="M12 8v4M12 16h.01"/></svg>
+          GPS timed out. Make sure Location is ON and try again.
+        </div>`);
+        return;
+      }
+
+      const location = result.location;
       btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2.5px;"></div> SUBMITTING...';
 
       try {
