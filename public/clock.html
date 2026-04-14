@@ -3,22 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f172a">
+  <meta name="theme-color" content="#F9FAFB">
   <title>Clock In/Out</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --card-border: #334155;
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --green: #22c55e;
-      --green-bg: rgba(34,197,94,0.12);
-      --red: #ef4444;
-      --red-bg: rgba(239,68,68,0.12);
-      --yellow-bg: rgba(234,179,8,0.12);
-      --yellow: #eab308;
-      --radius: 16px;
+      --bg: #F9FAFB;
+      --card: #FFFFFF;
+      --card-border: #E5E7EB;
+      --text: #111827;
+      --text-muted: #6B7280;
+      --primary: #2563EB;
+      --green: #16A34A;
+      --green-bg: #DCFCE7;
+      --green-border: #86EFAC;
+      --red: #DC2626;
+      --red-bg: #FEE2E2;
+      --red-border: #FCA5A5;
+      --yellow: #F59E0B;
+      --yellow-bg: #FEF3C7;
+      --yellow-border: #FCD34D;
+      --radius: 6px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -44,6 +48,7 @@
       text-align: center;
       max-width: 420px;
       width: 100%;
+      box-shadow: 0 1px 3px rgba(17,24,39,0.04), 0 1px 2px rgba(17,24,39,0.03);
       animation: fadeUp 0.4s ease;
     }
 
@@ -67,16 +72,17 @@
 
     .status-pill {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 16px; border-radius: 100px;
-      font-size: 14px; font-weight: 600;
+      padding: 6px 14px; border-radius: 4px;
+      font-size: 13px; font-weight: 600;
       margin-bottom: 32px;
+      border: 1px solid transparent;
     }
     .status-pill .dot {
-      width: 8px; height: 8px; border-radius: 50%;
+      width: 7px; height: 7px; border-radius: 50%;
     }
-    .status-pill.in { background: var(--green-bg); color: var(--green); }
+    .status-pill.in { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
     .status-pill.in .dot { background: var(--green); animation: pulse 2s infinite; }
-    .status-pill.out { background: var(--red-bg); color: var(--red); }
+    .status-pill.out { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
     .status-pill.out .dot { background: var(--red); }
 
     @keyframes pulse {
@@ -86,44 +92,45 @@
 
     .btn {
       display: flex; align-items: center; justify-content: center; gap: 10px;
-      width: 100%; padding: 18px 24px; border: none;
-      border-radius: 14px; font-size: 17px; font-weight: 700;
+      width: 100%; padding: 16px 24px; border: 1px solid transparent;
+      border-radius: 6px; font-size: 16px; font-weight: 600;
       cursor: pointer; transition: all 0.15s ease;
       letter-spacing: -0.01em;
     }
-    .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    .btn-in { background: var(--green); color: #052e16; }
-    .btn-in:hover:not(:disabled) { background: #16a34a; }
-    .btn-out { background: var(--red); color: #fff; }
-    .btn-out:hover:not(:disabled) { background: #dc2626; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-in { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-in:hover:not(:disabled) { background: #15803D; border-color: #15803D; }
+    .btn-out { background: var(--red); color: #fff; border-color: var(--red); }
+    .btn-out:hover:not(:disabled) { background: #B91C1C; border-color: #B91C1C; }
 
-    .btn svg { width: 20px; height: 20px; }
+    .btn svg { width: 18px; height: 18px; }
 
     .message {
-      margin-top: 20px; padding: 14px 16px; border-radius: 12px;
-      font-size: 14px; font-weight: 500;
+      margin-top: 16px; padding: 12px 14px; border-radius: 6px;
+      font-size: 13px; font-weight: 500;
       display: flex; align-items: center; gap: 10px;
+      border: 1px solid transparent; text-align: left;
     }
-    .message svg { width: 18px; height: 18px; flex-shrink: 0; }
-    .message.success { background: var(--green-bg); color: var(--green); }
-    .message.error { background: var(--red-bg); color: var(--red); }
-    .message.warning { background: var(--yellow-bg); color: var(--yellow); }
+    .message svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .message.success { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+    .message.error { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
+    .message.warning { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow-border); }
 
     .loading {
-      color: var(--text-muted); font-size: 16px;
+      color: var(--text-muted); font-size: 15px;
       display: flex; flex-direction: column; align-items: center; gap: 16px;
     }
     .spinner {
-      width: 32px; height: 32px; border: 3px solid var(--card-border);
-      border-top-color: var(--text); border-radius: 50%;
+      width: 28px; height: 28px; border: 2.5px solid var(--card-border);
+      border-top-color: var(--primary); border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .timestamp { color: var(--text-muted); font-size: 12px; margin-top: 12px; }
 
-    .footer { margin-top: 32px; font-size: 12px; color: var(--text-muted); opacity: 0.5; }
+    .footer { margin-top: 24px; font-size: 12px; color: var(--text-muted); letter-spacing: 0.02em; }
   </style>
 </head>
 <body>
@@ -147,7 +154,7 @@
         const res = await fetch(`/api/status/${token}`);
         if (!res.ok) {
           app.innerHTML = `<div class="loading">
-            <svg width="48" height="48" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            <svg width="40" height="40" fill="none" stroke="#DC2626" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
             Employee not found
           </div>`;
           return;
@@ -171,8 +178,8 @@
 
       app.innerHTML = `
         <div class="icon ${isIn ? 'clocked-in' : 'clocked-out'}">
-          ${isIn ? '<svg width="28" height="28" fill="none" stroke="#22c55e" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'
-                 : '<svg width="28" height="28" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'}
+          ${isIn ? '<svg width="28" height="28" fill="none" stroke="#16A34A" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'
+                 : '<svg width="28" height="28" fill="none" stroke="#DC2626" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'}
         </div>
         <div class="greeting">Welcome back</div>
         <div class="name">${employeeName}</div>
