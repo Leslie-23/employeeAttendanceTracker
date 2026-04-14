@@ -99,17 +99,42 @@
       margin-bottom: 20px;
       padding-bottom: 16px;
       border-bottom: 2px solid var(--ink);
+      gap: 12px;
     }
     .section-header h2 {
       font-family: 'Syne', sans-serif;
       font-size: 20px; font-weight: 800;
       text-transform: uppercase; letter-spacing: -0.02em;
       display: flex; align-items: center; gap: 10px;
+      flex: 1; min-width: 0;
     }
     .section-header h2::before {
       content: ''; display: inline-block;
       width: 14px; height: 14px; background: var(--ink);
+      flex-shrink: 0;
     }
+
+    /* --- Collapsible --- */
+    .section-header.collapsible {
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .section-header.collapsible:hover h2 { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+    .chevron {
+      width: 28px; height: 28px; flex-shrink: 0;
+      border: 2px solid var(--ink);
+      background: var(--yellow);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-pressed);
+      transition: transform 0.2s ease;
+    }
+    .chevron svg { width: 14px; height: 14px; stroke: var(--ink); stroke-width: 3; fill: none; }
+    .section.collapsed .chevron { transform: rotate(-90deg); }
+    .section.collapsed .section-header {
+      margin-bottom: 0; padding-bottom: 0; border-bottom: none;
+    }
+    .section.collapsed .section-body { display: none; }
     .count-badge {
       background: var(--yellow);
       border: 2px solid var(--ink);
@@ -355,6 +380,20 @@
       border: 1px solid var(--ink);
     }
     .import-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .import-btn {
+      padding: 10px 20px;
+      background: var(--yellow); color: var(--ink);
+      border: 2px solid var(--ink); border-radius: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.08s;
+    }
+    .import-btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+    .import-btn:active { transform: translate(2px, 2px); box-shadow: var(--shadow-pressed); }
+    .import-btn-primary { background: var(--primary); color: #FFF; }
     .import-result {
       margin-top: 14px; padding: 12px;
       font-family: 'JetBrains Mono', monospace;
@@ -429,14 +468,45 @@
 
     /* Responsive */
     @media (max-width: 600px) {
-      .container { padding: 20px 12px; }
-      .section { padding: 18px; }
-      .add-form { flex-direction: column; }
+      .container { padding: 16px 10px; }
+      .section { padding: 16px 14px; margin-bottom: 18px; box-shadow: var(--shadow-sm); }
+      .section-header { margin-bottom: 16px; padding-bottom: 12px; }
+      .section-header h2 { font-size: 17px; gap: 8px; }
+      .section-header h2::before { width: 11px; height: 11px; }
+      .count-badge { font-size: 11px; padding: 2px 8px; }
+      .chevron { width: 26px; height: 26px; }
+
+      .topbar { padding: 12px 14px; }
+      .topbar h1 { font-size: 15px; }
+      .topbar h1 .block { width: 12px; height: 12px; }
+      .status-live { font-size: 10px; }
+
+      .add-form { flex-direction: column; gap: 10px; }
       .add-form button { width: 100%; }
+
+      .stats-grid { grid-template-columns: 1fr; gap: 10px; }
+      .stat-value { font-size: 24px; }
+      .chart-box { padding: 12px; }
+      .chart-wrap { height: 200px; }
+
+      .filter-row { gap: 8px; }
+      .filter-row input, .filter-row select { flex: 1 1 calc(50% - 4px); font-size: 13px; }
+
+      .import-box textarea { min-height: 110px; font-size: 11px; }
+      .import-actions { gap: 8px; }
+      .import-btn { flex: 1; padding: 10px 14px; font-size: 12px; }
+
+      .manual-add { padding: 12px; }
+      .manual-row { grid-template-columns: 1fr; gap: 8px; }
+      .manual-btn { width: 100%; padding: 10px; }
+
+      th { font-size: 10px; padding: 8px 10px; }
+      td { font-size: 13px; padding: 10px; }
+      .actions button { padding: 5px 10px; font-size: 11px; }
+
       .modal { padding: 22px 18px; }
       .modal img { width: 180px; height: 180px; }
       .modal-btns { flex-direction: column; }
-      .topbar h1 { font-size: 16px; }
     }
   </style>
 </head>
@@ -456,20 +526,23 @@
 
   <div class="container">
     <!-- Employees -->
-    <div class="section">
-      <div class="section-header">
+    <div class="section collapsed" id="sectionEmployees">
+      <div class="section-header collapsible" onclick="toggleSection('sectionEmployees')">
         <h2>Employees</h2>
         <span class="count-badge" id="empCount">0</span>
+        <span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
       </div>
-      <div class="add-form">
-        <input type="text" id="empName" placeholder="Enter employee name..." onkeydown="if(event.key==='Enter')addEmployee()">
-        <button onclick="addEmployee()">+ Add</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Name</th><th>QR</th><th>Actions</th></tr></thead>
-          <tbody id="empList"></tbody>
-        </table>
+      <div class="section-body">
+        <div class="add-form">
+          <input type="text" id="empName" placeholder="Enter employee name..." onkeydown="if(event.key==='Enter')addEmployee()">
+          <button onclick="addEmployee()">+ Add</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>QR</th><th>Actions</th></tr></thead>
+            <tbody id="empList"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -503,24 +576,27 @@
     </div>
 
     <!-- Import -->
-    <div class="section import-box">
-      <div class="section-header">
+    <div class="section import-box collapsed" id="sectionImport">
+      <div class="section-header collapsible" onclick="toggleSection('sectionImport')">
         <h2>Import (Historical)</h2>
+        <span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
       </div>
-      <div class="import-hint">
-        Paste CSV with columns: <code>name,type,timestamp</code><br>
-        Type must be <code>in</code> or <code>out</code>. Header row optional. Unknown employees are auto-created.
-      </div>
-      <textarea id="csvInput" placeholder="name,type,timestamp
+      <div class="section-body">
+        <div class="import-hint">
+          Paste CSV with columns: <code>name,type,timestamp</code><br>
+          Type must be <code>in</code> or <code>out</code>. Header row optional. Unknown employees are auto-created.
+        </div>
+        <textarea id="csvInput" placeholder="name,type,timestamp
 Ahmed Adams,in,2026-04-07 08:00
 Ahmed Adams,out,2026-04-07 17:30
 ..."></textarea>
-      <div class="import-actions">
-        <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none" onchange="loadFile(event)">
-        <button class="import-btn" onclick="document.getElementById('csvFile').click()" style="padding:10px 20px;background:var(--yellow);border:2px solid var(--ink);font-family:'Syne',sans-serif;font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;cursor:pointer;box-shadow:var(--shadow-sm);">Upload File</button>
-        <button onclick="runImport()" style="padding:10px 20px;background:var(--primary);color:#FFF;border:2px solid var(--ink);font-family:'Syne',sans-serif;font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;cursor:pointer;box-shadow:var(--shadow-sm);">Run Import</button>
+        <div class="import-actions">
+          <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none" onchange="loadFile(event)">
+          <button class="import-btn" onclick="document.getElementById('csvFile').click()">Upload File</button>
+          <button class="import-btn import-btn-primary" onclick="runImport()">Run Import</button>
+        </div>
+        <div class="import-result" id="importResult"></div>
       </div>
-      <div class="import-result" id="importResult"></div>
     </div>
 
     <!-- Attendance -->
@@ -626,6 +702,10 @@ Ahmed Adams,out,2026-04-07 17:30
       const d = document.createElement('div');
       d.textContent = str;
       return d.innerHTML;
+    }
+
+    function toggleSection(id) {
+      document.getElementById(id).classList.toggle('collapsed');
     }
 
     async function addEmployee() {
