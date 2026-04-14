@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
     :root {
       --bg: #FEFCE8;
@@ -289,6 +290,87 @@
       text-transform: uppercase; letter-spacing: 0.1em;
     }
 
+    /* --- Charts --- */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--bg);
+      border: 2px solid var(--ink);
+      padding: 14px;
+      box-shadow: var(--shadow-pressed);
+    }
+    .stat-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px; font-weight: 800;
+      letter-spacing: -0.03em; line-height: 1;
+    }
+    .chart-box {
+      border: 2px solid var(--ink);
+      background: var(--bg);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .chart-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 12px; color: var(--muted);
+    }
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* --- Import --- */
+    .import-box textarea {
+      width: 100%;
+      min-height: 140px;
+      padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: var(--bg);
+      border: 2px solid var(--ink);
+      border-radius: 0;
+      box-shadow: var(--shadow-pressed);
+      outline: none;
+      resize: vertical;
+      color: var(--ink);
+    }
+    .import-box textarea:focus {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .import-hint {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+      margin-bottom: 10px; line-height: 1.6;
+    }
+    .import-hint code {
+      background: var(--yellow-soft); padding: 1px 5px;
+      border: 1px solid var(--ink);
+    }
+    .import-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+    .import-result {
+      margin-top: 14px; padding: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; line-height: 1.6;
+      border: 2px solid var(--ink);
+      background: var(--green-soft);
+      white-space: pre-wrap;
+      display: none;
+    }
+    .import-result.error { background: var(--red-soft); }
+    .import-result.active { display: block; }
+
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+
     /* Responsive */
     @media (max-width: 600px) {
       .container { padding: 20px 12px; }
@@ -333,6 +415,56 @@
           <tbody id="empList"></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- Analytics -->
+    <div class="section">
+      <div class="section-header">
+        <h2>Analytics</h2>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Clock-ins (14d)</div>
+          <div class="stat-value" id="statTotal">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active This Week</div>
+          <div class="stat-value" id="statActive">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Hours / Employee</div>
+          <div class="stat-value" id="statAvg">—</div>
+        </div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">// Daily clock-ins (last 14 days)</div>
+        <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">// Hours worked this week</div>
+        <div class="chart-wrap"><canvas id="hoursChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Import -->
+    <div class="section import-box">
+      <div class="section-header">
+        <h2>Import (Historical)</h2>
+      </div>
+      <div class="import-hint">
+        Paste CSV with columns: <code>name,type,timestamp</code><br>
+        Type must be <code>in</code> or <code>out</code>. Header row optional. Unknown employees are auto-created.
+      </div>
+      <textarea id="csvInput" placeholder="name,type,timestamp
+Ahmed Adams,in,2026-04-07 08:00
+Ahmed Adams,out,2026-04-07 17:30
+..."></textarea>
+      <div class="import-actions">
+        <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none" onchange="loadFile(event)">
+        <button class="import-btn" onclick="document.getElementById('csvFile').click()" style="padding:10px 20px;background:var(--yellow);border:2px solid var(--ink);font-family:'Syne',sans-serif;font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;cursor:pointer;box-shadow:var(--shadow-sm);">Upload File</button>
+        <button onclick="runImport()" style="padding:10px 20px;background:var(--primary);color:#FFF;border:2px solid var(--ink);font-family:'Syne',sans-serif;font-weight:800;text-transform:uppercase;font-size:13px;letter-spacing:0.05em;cursor:pointer;box-shadow:var(--shadow-sm);">Run Import</button>
+      </div>
+      <div class="import-result" id="importResult"></div>
     </div>
 
     <!-- Attendance -->
@@ -516,9 +648,136 @@
       }
     }
 
+    // --- Analytics ---
+    let dailyChart, hoursChart;
+
+    async function loadAnalytics() {
+      const res = await fetch('/api/analytics?days=14');
+      const data = await res.json();
+
+      // Stats
+      document.getElementById('statTotal').textContent = data.daily.reduce((s, d) => s + d.in, 0);
+      document.getElementById('statActive').textContent = data.employeeHours.length;
+      const avgHours = data.employeeHours.length
+        ? (data.employeeHours.reduce((s, e) => s + e.hours, 0) / data.employeeHours.length).toFixed(1)
+        : '0';
+      document.getElementById('statAvg').textContent = avgHours + 'h';
+
+      // Daily chart
+      const labels = data.daily.map(d => d.date.slice(5));
+      const inCounts = data.daily.map(d => d.in);
+
+      if (dailyChart) dailyChart.destroy();
+      dailyChart = new Chart(document.getElementById('dailyChart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Clock-ins',
+            data: inCounts,
+            backgroundColor: '#2563EB',
+            borderColor: '#111111',
+            borderWidth: 2,
+            borderRadius: 0
+          }]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: 'JetBrains Mono', size: 10 } } },
+            y: { beginAtZero: true, ticks: { stepSize: 1, font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: '#E5E7EB' } }
+          }
+        }
+      });
+
+      // Hours chart
+      const hLabels = data.employeeHours.map(e => e.name);
+      const hData = data.employeeHours.map(e => e.hours);
+
+      if (hoursChart) hoursChart.destroy();
+      hoursChart = new Chart(document.getElementById('hoursChart'), {
+        type: 'bar',
+        data: {
+          labels: hLabels,
+          datasets: [{
+            label: 'Hours',
+            data: hData,
+            backgroundColor: '#16A34A',
+            borderColor: '#111111',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, ticks: { font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: '#E5E7EB' } },
+            y: { ticks: { font: { family: 'Inter', size: 11, weight: 600 } }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // --- Import ---
+    function loadFile(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => { document.getElementById('csvInput').value = ev.target.result; };
+      reader.readAsText(file);
+    }
+
+    async function runImport() {
+      const csv = document.getElementById('csvInput').value.trim();
+      const resultBox = document.getElementById('importResult');
+      resultBox.className = 'import-result';
+
+      if (!csv) {
+        resultBox.textContent = 'No CSV provided.';
+        resultBox.classList.add('active', 'error');
+        return;
+      }
+
+      resultBox.classList.add('active');
+      resultBox.textContent = 'Importing...';
+
+      try {
+        const res = await fetch('/api/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/csv' },
+          body: csv
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultBox.className = 'import-result active error';
+          resultBox.textContent = 'ERROR: ' + (data.error || 'Import failed');
+          return;
+        }
+
+        let msg = `INSERTED: ${data.inserted}\nSKIPPED:  ${data.skipped}`;
+        if (data.createdEmployees.length) msg += `\nNEW EMPLOYEES: ${data.createdEmployees.join(', ')}`;
+        if (data.errors.length) msg += `\n\nERRORS:\n${data.errors.slice(0, 10).join('\n')}`;
+        if (data.errors.length > 10) msg += `\n...and ${data.errors.length - 10} more`;
+
+        resultBox.className = 'import-result active' + (data.skipped > 0 ? ' error' : '');
+        resultBox.textContent = msg;
+
+        loadEmployees();
+        loadAttendance();
+        loadAnalytics();
+      } catch (err) {
+        resultBox.className = 'import-result active error';
+        resultBox.textContent = 'Request failed: ' + err.message;
+      }
+    }
+
     document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
     loadEmployees();
     loadAttendance();
+    loadAnalytics();
   </script>
 </body>
 </html>

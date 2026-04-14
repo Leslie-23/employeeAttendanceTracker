@@ -7,7 +7,8 @@ const Employee = require('../models/Employee');
 const Attendance = require('../models/Attendance');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
+app.use(express.text({ type: ['text/csv', 'text/plain'], limit: '2mb' }));
 app.set('trust proxy', true);
 
 // --- DB Connection (reuse across serverless invocations) ---
@@ -214,6 +215,159 @@ app.get('/api/attendance', async (req, res) => {
     res.json(records);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// --- Analytics ---
+app.get('/api/analytics', async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days) || 14, 90);
+    const since = new Date();
+    since.setDate(since.getDate() - days + 1);
+    since.setHours(0, 0, 0, 0);
+
+    const records = await Attendance.find({ timestamp: { $gte: since } })
+      .populate('employeeId', 'name')
+      .sort({ timestamp: 1 })
+      .lean();
+
+    // Daily clock-in counts
+    const dailyMap = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(since);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      dailyMap[key] = { date: key, in: 0, out: 0 };
+    }
+    records.forEach(r => {
+      const key = new Date(r.timestamp).toISOString().slice(0, 10);
+      if (dailyMap[key]) dailyMap[key][r.type]++;
+    });
+    const daily = Object.values(dailyMap);
+
+    // Hours per employee (current week - last 7 days)
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const weekRecords = records.filter(r => new Date(r.timestamp) >= weekAgo);
+
+    // Group by employee, pair consecutive in/out
+    const byEmployee = {};
+    weekRecords.forEach(r => {
+      if (!r.employeeId) return;
+      const id = r.employeeId._id.toString();
+      if (!byEmployee[id]) byEmployee[id] = { name: r.employeeId.name, records: [], hours: 0 };
+      byEmployee[id].records.push(r);
+    });
+
+    Object.values(byEmployee).forEach(emp => {
+      let openIn = null;
+      emp.records.forEach(r => {
+        if (r.type === 'in') openIn = new Date(r.timestamp);
+        else if (r.type === 'out' && openIn) {
+          const ms = new Date(r.timestamp) - openIn;
+          emp.hours += ms / (1000 * 60 * 60);
+          openIn = null;
+        }
+      });
+      emp.hours = Math.round(emp.hours * 10) / 10;
+      delete emp.records;
+    });
+
+    const employeeHours = Object.values(byEmployee)
+      .sort((a, b) => b.hours - a.hours);
+
+    res.json({ daily, employeeHours, totalRecords: records.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// --- CSV Import (temporary - for backfilling historical data) ---
+// Accepts either CSV text body or JSON { csv: "..." }
+// CSV format: name,type,timestamp    (header optional)
+// e.g.:
+//   Ahmed Adams,in,2026-04-07 08:00
+//   Ahmed Adams,out,2026-04-07 17:30
+app.post('/api/import', async (req, res) => {
+  try {
+    let csvText = '';
+    if (typeof req.body === 'string') csvText = req.body;
+    else if (req.body && typeof req.body.csv === 'string') csvText = req.body.csv;
+    else return res.status(400).json({ error: 'Provide CSV as text body or { csv: "..." }' });
+
+    const lines = csvText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return res.status(400).json({ error: 'Empty CSV' });
+
+    // Skip header if first line looks like one
+    const first = lines[0].toLowerCase();
+    const startIdx = (first.includes('name') && first.includes('type')) ? 1 : 0;
+
+    const employeeCache = {};
+    async function getOrCreateEmployee(name) {
+      const key = name.toLowerCase();
+      if (employeeCache[key]) return employeeCache[key];
+      let emp = await Employee.findOne({ name: new RegExp('^' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') });
+      if (!emp) emp = await Employee.create({ name, qrToken: require('crypto').randomUUID() });
+      employeeCache[key] = emp;
+      return emp;
+    }
+
+    const results = { inserted: 0, skipped: 0, errors: [], createdEmployees: [] };
+    const toInsert = [];
+
+    for (let i = startIdx; i < lines.length; i++) {
+      const line = lines[i];
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length < 3) {
+        results.skipped++;
+        results.errors.push(`Line ${i + 1}: need 3 columns, got ${parts.length}`);
+        continue;
+      }
+
+      const [name, rawType, ...tsParts] = parts;
+      const type = rawType.toLowerCase();
+      const tsStr = tsParts.join(',').replace(/^["']|["']$/g, '');
+      const timestamp = new Date(tsStr);
+
+      if (!['in', 'out'].includes(type)) {
+        results.skipped++;
+        results.errors.push(`Line ${i + 1}: type must be 'in' or 'out', got '${rawType}'`);
+        continue;
+      }
+      if (isNaN(timestamp.getTime())) {
+        results.skipped++;
+        results.errors.push(`Line ${i + 1}: invalid timestamp '${tsStr}'`);
+        continue;
+      }
+
+      try {
+        const wasNew = !employeeCache[name.toLowerCase()] && !(await Employee.findOne({ name: new RegExp('^' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }));
+        const emp = await getOrCreateEmployee(name);
+        if (wasNew && !results.createdEmployees.includes(emp.name)) {
+          results.createdEmployees.push(emp.name);
+        }
+        toInsert.push({
+          employeeId: emp._id,
+          type,
+          timestamp,
+          verification: 'wifi',
+          ip: 'imported'
+        });
+      } catch (err) {
+        results.errors.push(`Line ${i + 1}: ${err.message}`);
+      }
+    }
+
+    if (toInsert.length) {
+      await Attendance.insertMany(toInsert);
+      results.inserted = toInsert.length;
+    }
+
+    res.json(results);
+  } catch (err) {
+    console.error('Import error:', err);
+    res.status(500).json({ error: 'Import failed: ' + err.message });
   }
 });
 
