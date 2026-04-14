@@ -369,7 +369,63 @@
 
     @media (max-width: 600px) {
       .stats-grid { grid-template-columns: 1fr; }
+      .manual-row { grid-template-columns: 1fr !important; }
     }
+
+    /* --- Manual add --- */
+    .manual-add {
+      background: var(--bg);
+      border: 2px solid var(--ink);
+      padding: 14px;
+      box-shadow: var(--shadow-pressed);
+    }
+    .manual-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 2fr auto;
+      gap: 8px;
+    }
+    .manual-row select, .manual-row input {
+      padding: 8px 10px;
+      background: var(--card); border: 2px solid var(--ink);
+      border-radius: 0; color: var(--ink); font-size: 13px;
+      font-family: 'Inter', sans-serif; outline: none;
+      min-width: 0;
+    }
+    .manual-row select:focus, .manual-row input:focus {
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+    .manual-btn {
+      padding: 8px 14px;
+      background: var(--green); color: var(--ink);
+      border: 2px solid var(--ink); border-radius: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: 12px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      cursor: pointer;
+      box-shadow: var(--shadow-pressed);
+      transition: all 0.08s;
+      white-space: nowrap;
+    }
+    .manual-btn:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+    .manual-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+    .manual-result {
+      margin-top: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      display: none;
+      padding: 8px 10px;
+      border: 2px solid var(--ink);
+    }
+    .manual-result.active { display: block; }
+    .manual-result.success { background: var(--green-soft); }
+    .manual-result.error { background: var(--red-soft); }
+
+    .row-delete {
+      background: transparent; border: none; cursor: pointer;
+      color: var(--muted); font-size: 16px; padding: 4px 8px;
+      font-weight: 700;
+    }
+    .row-delete:hover { color: var(--red); }
 
     /* Responsive */
     @media (max-width: 600px) {
@@ -472,7 +528,25 @@ Ahmed Adams,out,2026-04-07 17:30
       <div class="section-header">
         <h2>Attendance Log</h2>
       </div>
-      <div class="filter-row">
+
+      <!-- Manual add form -->
+      <div class="manual-add">
+        <div class="chart-title" style="margin-bottom:10px;">// Add record manually</div>
+        <div class="manual-row">
+          <select id="manualEmployee">
+            <option value="">Select employee...</option>
+          </select>
+          <select id="manualType">
+            <option value="in">Clock IN</option>
+            <option value="out">Clock OUT</option>
+          </select>
+          <input type="datetime-local" id="manualTime">
+          <button onclick="addManualRecord()" class="manual-btn">+ Add Record</button>
+        </div>
+        <div id="manualResult" class="manual-result"></div>
+      </div>
+
+      <div class="filter-row" style="margin-top:20px;">
         <input type="date" id="filterDate" onchange="loadAttendance()">
         <select id="filterEmployee" onchange="loadAttendance()">
           <option value="">All Employees</option>
@@ -480,7 +554,7 @@ Ahmed Adams,out,2026-04-07 17:30
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>Verified</th><th>IP</th></tr></thead>
+          <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>Verified</th><th>IP</th><th></th></tr></thead>
           <tbody id="attendanceList"></tbody>
         </table>
       </div>
@@ -539,6 +613,13 @@ Ahmed Adams,out,2026-04-07 17:30
       select.innerHTML = '<option value="">All Employees</option>' +
         employees.map(e => `<option value="${e._id}">${esc(e.name)}</option>`).join('');
       select.value = current;
+
+      // Also populate manual-entry employee dropdown
+      const manualSelect = document.getElementById('manualEmployee');
+      const manualCurrent = manualSelect.value;
+      manualSelect.innerHTML = '<option value="">Select employee...</option>' +
+        employees.map(e => `<option value="${e._id}">${esc(e.name)}</option>`).join('');
+      manualSelect.value = manualCurrent;
     }
 
     function esc(str) {
@@ -629,7 +710,7 @@ Ahmed Adams,out,2026-04-07 17:30
 
       const list = document.getElementById('attendanceList');
       if (records.length === 0) {
-        list.innerHTML = '<tr><td colspan="5"><div class="empty-state">// No records</div></td></tr>';
+        list.innerHTML = '<tr><td colspan="6"><div class="empty-state">// No records</div></td></tr>';
       } else {
         list.innerHTML = records.map(r => {
           const isGeoFallback = r.verification === 'geo-fallback';
@@ -642,11 +723,75 @@ Ahmed Adams,out,2026-04-07 17:30
               <td style="font-family:'JetBrains Mono',monospace;font-size:13px;">${new Date(r.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
               <td><span class="badge ${verClass}">${verLabel}</span></td>
               <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px;">${r.ip || '-'}</td>
+              <td><button class="row-delete" onclick="deleteRecord('${r._id}')" title="Delete record">✕</button></td>
             </tr>
           `;
         }).join('');
       }
     }
+
+    // --- Manual attendance entry ---
+    async function addManualRecord() {
+      const employeeId = document.getElementById('manualEmployee').value;
+      const type = document.getElementById('manualType').value;
+      const timeInput = document.getElementById('manualTime').value;
+      const resultBox = document.getElementById('manualResult');
+
+      resultBox.className = 'manual-result';
+
+      if (!employeeId) {
+        resultBox.textContent = 'Please select an employee.';
+        resultBox.classList.add('active', 'error');
+        return;
+      }
+      if (!timeInput) {
+        resultBox.textContent = 'Please select a date/time.';
+        resultBox.classList.add('active', 'error');
+        return;
+      }
+
+      const timestamp = new Date(timeInput).toISOString();
+
+      try {
+        const res = await fetch('/api/attendance/manual', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ employeeId, type, timestamp })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultBox.textContent = 'ERROR: ' + (data.error || 'Failed');
+          resultBox.classList.add('active', 'error');
+          return;
+        }
+
+        const empName = document.querySelector(`#manualEmployee option[value="${employeeId}"]`).textContent;
+        resultBox.textContent = `✓ Added: ${empName} — ${type.toUpperCase()} @ ${new Date(timestamp).toLocaleString()}`;
+        resultBox.classList.add('active', 'success');
+        document.getElementById('manualTime').value = '';
+
+        loadAttendance();
+        loadAnalytics();
+      } catch (err) {
+        resultBox.textContent = 'Request failed: ' + err.message;
+        resultBox.classList.add('active', 'error');
+      }
+    }
+
+    async function deleteRecord(id) {
+      if (!confirm('Delete this attendance record?')) return;
+      await fetch(`/api/attendance/${id}`, { method: 'DELETE' });
+      loadAttendance();
+      loadAnalytics();
+    }
+
+    // Pre-fill the datetime input with "now"
+    (function initManualTime() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('manualTime').value = now.toISOString().slice(0, 16);
+    })();
 
     // --- Analytics ---
     let dailyChart, hoursChart;

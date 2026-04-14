@@ -218,6 +218,49 @@ app.get('/api/attendance', async (req, res) => {
   }
 });
 
+// --- Manual attendance entry (admin) ---
+app.post('/api/attendance/manual', async (req, res) => {
+  try {
+    const { employeeId, type, timestamp } = req.body;
+
+    if (!employeeId || !type || !timestamp) {
+      return res.status(400).json({ error: 'employeeId, type, and timestamp are required' });
+    }
+    if (!['in', 'out'].includes(type)) {
+      return res.status(400).json({ error: "type must be 'in' or 'out'" });
+    }
+
+    const employee = await Employee.findById(employeeId);
+    if (!employee) return res.status(404).json({ error: 'Employee not found' });
+
+    const ts = new Date(timestamp);
+    if (isNaN(ts.getTime())) return res.status(400).json({ error: 'Invalid timestamp' });
+
+    const record = await Attendance.create({
+      employeeId: employee._id,
+      type,
+      timestamp: ts,
+      verification: 'wifi',
+      ip: 'manual-entry'
+    });
+
+    res.json({ success: true, record });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Delete an attendance record
+app.delete('/api/attendance/:id', async (req, res) => {
+  try {
+    await Attendance.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // --- Analytics ---
 app.get('/api/analytics', async (req, res) => {
   try {
