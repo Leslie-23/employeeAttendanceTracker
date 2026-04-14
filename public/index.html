@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FEFCE8">
+  <title>PAL-tech Attendance // QR Clock-In for Small Shops</title>
+  <meta name="description" content="Lightweight QR-based employee attendance tracking. Verified by WiFi and GPS. No hardware, no subscriptions — just a phone and a QR code.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="PAL-tech Attendance // QR Clock-In for Small Shops">
+  <meta property="og:description" content="Lightweight QR-based employee attendance tracking. Verified by WiFi and GPS. No hardware, no subscriptions — just a phone and a QR code.">
+  <meta property="og:image" content="/og.svg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name" content="PAL-tech Attendance">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="PAL-tech Attendance // QR Clock-In for Small Shops">
+  <meta name="twitter:description" content="Lightweight QR-based employee attendance tracking. Verified by WiFi and GPS.">
+  <meta name="twitter:image" content="/og.svg">
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111'/%3E%3Crect x='6' y='6' width='20' height='20' fill='%23FACC15'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FEFCE8;
+      --card: #FFFFFF;
+      --ink: #111111;
+      --muted: #555555;
+      --primary: #2563EB;
+      --green: #16A34A;
+      --red: #DC2626;
+      --yellow: #FACC15;
+      --shadow: 6px 6px 0 var(--ink);
+      --shadow-sm: 4px 4px 0 var(--ink);
+      --shadow-pressed: 2px 2px 0 var(--ink);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background-image:
+        linear-gradient(var(--ink) 1px, transparent 1px),
+        linear-gradient(90deg, var(--ink) 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: -1px -1px;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: var(--bg);
+      opacity: 0.92;
+      z-index: -1;
+    }
+
+    /* --- Top bar --- */
+    .topbar {
+      background: var(--ink);
+      color: var(--bg);
+      padding: 14px 20px;
+      position: sticky; top: 0; z-index: 50;
+      border-bottom: 3px solid var(--ink);
+    }
+    .topbar-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px; font-weight: 800;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .topbar h1 .block {
+      display: inline-block; width: 16px; height: 16px;
+      background: var(--yellow);
+      border: 2px solid var(--bg);
+    }
+    .status-live {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .status-live .dot {
+      width: 8px; height: 8px; background: var(--green);
+      border: 1px solid var(--bg);
+      animation: blink 1.2s infinite;
+    }
+    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0.2} }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 48px 20px 80px; }
+
+    /* --- Hero --- */
+    .hero {
+      background: var(--card);
+      border: 3px solid var(--ink);
+      padding: 48px 40px;
+      box-shadow: var(--shadow);
+      margin-bottom: 36px;
+      position: relative;
+      overflow: hidden;
+      animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translate(-6px, -6px); }
+      to { opacity: 1; transform: translate(0, 0); }
+    }
+    .tag {
+      display: inline-block;
+      background: var(--ink); color: var(--bg);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      padding: 5px 12px; letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(40px, 9vw, 88px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .hero h2 .accent {
+      display: inline-block;
+      background: var(--yellow);
+      padding: 0 12px;
+      border: 3px solid var(--ink);
+      box-shadow: var(--shadow-sm);
+      transform: rotate(-1.5deg);
+      margin: 0 4px;
+    }
+    .hero p {
+      font-size: clamp(15px, 2vw, 19px);
+      color: var(--muted);
+      max-width: 620px;
+      line-height: 1.55;
+      margin-bottom: 28px;
+      font-weight: 500;
+    }
+    .cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .cta {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 15px 26px;
+      border: 3px solid var(--ink);
+      font-family: 'Syne', sans-serif;
+      font-size: 15px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      text-decoration: none;
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.08s;
+      cursor: pointer;
+    }
+    .cta:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+    .cta:active { transform: translate(2px, 2px); box-shadow: var(--shadow-pressed); }
+    .cta-primary { background: var(--yellow); color: var(--ink); }
+    .cta-ghost { background: var(--card); }
+    .cta svg { width: 18px; height: 18px; stroke-width: 2.5; }
+
+    /* Stamp */
+    .stamp {
+      position: absolute;
+      top: 28px; right: 28px;
+      background: var(--yellow);
+      border: 3px solid var(--ink);
+      box-shadow: var(--shadow-sm);
+      padding: 14px 18px;
+      transform: rotate(6deg);
+      text-align: center;
+    }
+    .stamp .top {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.15em;
+    }
+    .stamp .big {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px; font-weight: 800;
+      letter-spacing: -0.02em; line-height: 1;
+      margin: 4px 0;
+    }
+    .stamp .bot {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.15em;
+      border-top: 2px solid var(--ink);
+      padding-top: 4px;
+    }
+
+    /* --- Features --- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 36px;
+    }
+    .feature {
+      background: var(--card);
+      border: 3px solid var(--ink);
+      padding: 26px 22px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.12s ease;
+    }
+    .feature:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow); }
+    .feature .num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.15em; color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .feature h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: -0.02em;
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .feature h3 .dot {
+      width: 10px; height: 10px;
+      border: 2px solid var(--ink);
+      flex-shrink: 0;
+    }
+    .feature p {
+      font-size: 14px; color: var(--muted);
+      line-height: 1.55;
+      font-weight: 500;
+    }
+    .feature.a h3 .dot { background: var(--green); }
+    .feature.b h3 .dot { background: var(--yellow); }
+    .feature.c h3 .dot { background: var(--primary); }
+
+    /* --- How it works --- */
+    .how {
+      background: var(--card);
+      border: 3px solid var(--ink);
+      padding: 36px 32px;
+      box-shadow: var(--shadow);
+      margin-bottom: 36px;
+    }
+    .how h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 26px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .how h3::before {
+      content: ''; width: 14px; height: 14px;
+      background: var(--ink);
+    }
+    .how .sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--muted);
+      letter-spacing: 0.12em; text-transform: uppercase;
+      padding-bottom: 20px;
+      border-bottom: 2px solid var(--ink);
+      margin-bottom: 24px;
+    }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .step {
+      background: var(--bg);
+      border: 2px solid var(--ink);
+      padding: 18px 16px;
+      box-shadow: var(--shadow-pressed);
+      position: relative;
+    }
+    .step .n {
+      font-family: 'Syne', sans-serif;
+      font-size: 32px; font-weight: 800;
+      letter-spacing: -0.04em; line-height: 1;
+      margin-bottom: 8px;
+    }
+    .step .label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .step .desc {
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    /* --- Footer --- */
+    .footer {
+      background: var(--ink); color: var(--bg);
+      border: 3px solid var(--ink);
+      padding: 28px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 20px; flex-wrap: wrap;
+      box-shadow: var(--shadow);
+    }
+    .footer .dev {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .footer .dev b {
+      background: var(--yellow); color: var(--ink);
+      padding: 2px 8px;
+      border: 2px solid var(--bg);
+      margin-left: 4px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+    .footer a {
+      color: var(--bg); text-decoration: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; letter-spacing: 0.1em;
+      border-bottom: 2px solid var(--yellow);
+      padding-bottom: 2px;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 800px) {
+      .grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: repeat(2, 1fr); }
+      .stamp { top: 16px; right: 16px; padding: 10px 12px; transform: rotate(6deg) scale(0.75); transform-origin: top right; }
+      .stamp .big { font-size: 16px; }
+      .hero { padding: 32px 22px; }
+      .how { padding: 26px 22px; }
+      .footer { padding: 22px; flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 500px) {
+      .container { padding: 24px 12px 40px; }
+      .topbar { padding: 12px 14px; }
+      .topbar h1 { font-size: 15px; }
+      .topbar h1 .block { width: 12px; height: 12px; }
+      .status-live { font-size: 10px; }
+      .stamp { display: none; }
+      .steps { grid-template-columns: 1fr; }
+      .cta { flex: 1; justify-content: center; padding: 13px 18px; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <h1><span class="block"></span> PAL-TECH ATTENDANCE</h1>
+      <div class="status-live">
+        <span class="dot"></span>
+        ONLINE
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Hero -->
+    <div class="hero">
+      <div class="tag">● v1.0 — SHOP-READY</div>
+      <h2>Clock In.<br>Clock <span class="accent">Out.</span></h2>
+      <p>
+        QR-based attendance tracking for small shops. Each employee gets a unique QR — scan it, tap a button, they're clocked in. The server verifies they're physically at the shop with WiFi + GPS. No hardware, no subscriptions, no paper sheets.
+      </p>
+      <div class="cta-row">
+        <a href="/admin" class="cta cta-primary">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Admin Dashboard
+        </a>
+        <a href="https://github.com/Leslie-23" class="cta cta-ghost" target="_blank" rel="noopener">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19c-4 1.5-4-2-6-2m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12 12 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></svg>
+          View Source
+        </a>
+      </div>
+
+      <div class="stamp">
+        <div class="top">NO</div>
+        <div class="big">HARDWARE</div>
+        <div class="bot">NEEDED</div>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="grid">
+      <div class="feature a">
+        <div class="num">// 01</div>
+        <h3><span class="dot"></span> QR Identity</h3>
+        <p>Every employee gets a unique, unguessable QR. Print it, tape it to their desk, or let them save it to their phone — it's theirs alone.</p>
+      </div>
+      <div class="feature b">
+        <div class="num">// 02</div>
+        <h3><span class="dot"></span> Dual Verify</h3>
+        <p>Every clock-in checks either the shop's WiFi subnet or GPS proximity (within 100m). Can't fake your way in from home.</p>
+      </div>
+      <div class="feature c">
+        <div class="num">// 03</div>
+        <h3><span class="dot"></span> Live Analytics</h3>
+        <p>Daily clock-in counts, hours worked per employee, CSV backfill, and a full audit log — all in one admin page.</p>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="how">
+      <h3>How It Works</h3>
+      <div class="sub">// the 4-step employee flow</div>
+      <div class="steps">
+        <div class="step">
+          <div class="n">01</div>
+          <div class="label">Scan</div>
+          <div class="desc">Employee scans their personal QR on their phone.</div>
+        </div>
+        <div class="step">
+          <div class="n">02</div>
+          <div class="label">Tap</div>
+          <div class="desc">Their clock page opens. One button: Clock In or Clock Out.</div>
+        </div>
+        <div class="step">
+          <div class="n">03</div>
+          <div class="label">Verify</div>
+          <div class="desc">Server checks WiFi or GPS. Rejects anything off-site.</div>
+        </div>
+        <div class="step">
+          <div class="n">04</div>
+          <div class="label">Done</div>
+          <div class="desc">Record saved with timestamp, IP, coords, and method.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="dev">// Built by <b>Leslie Paul</b></div>
+      <a href="https://github.com/Leslie-23" target="_blank" rel="noopener">github.com/leslie-23 →</a>
+    </div>
+  </div>
+</body>
+</html>
