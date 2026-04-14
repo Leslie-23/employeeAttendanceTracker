@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/api/og", "destination": "/api/og" },
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/clock/:token", "destination": "/clock.html" },
     { "source": "/admin", "destination": "/admin.html" }
