@@ -2,49 +2,138 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
   <title>Clock In/Out</title>
   <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-border: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,0.12);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.12);
+      --yellow-bg: rgba(234,179,8,0.12);
+      --yellow: #eab308;
+      --radius: 16px;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f0f2f5;
-      display: flex; justify-content: center; align-items: center;
-      min-height: 100vh; padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      padding: 24px 16px;
+      -webkit-font-smoothing: antialiased;
     }
+
     .card {
-      background: white; border-radius: 16px; padding: 40px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.1); text-align: center;
-      max-width: 400px; width: 100%;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 40px 28px;
+      text-align: center;
+      max-width: 420px;
+      width: 100%;
+      animation: fadeUp 0.4s ease;
     }
-    .name { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
-    .status { font-size: 16px; color: #666; margin-bottom: 32px; }
-    .status .badge {
-      display: inline-block; padding: 4px 12px; border-radius: 20px;
-      font-weight: 600; font-size: 14px;
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    .badge.in { background: #d4edda; color: #155724; }
-    .badge.out { background: #f8d7da; color: #721c24; }
+
+    .icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 24px;
+    }
+    .icon.clocked-in { background: var(--green-bg); }
+    .icon.clocked-out { background: var(--red-bg); }
+
+    .greeting { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .name { font-size: 26px; font-weight: 700; margin-bottom: 24px; letter-spacing: -0.02em; }
+
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: 100px;
+      font-size: 14px; font-weight: 600;
+      margin-bottom: 32px;
+    }
+    .status-pill .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .status-pill.in { background: var(--green-bg); color: var(--green); }
+    .status-pill.in .dot { background: var(--green); animation: pulse 2s infinite; }
+    .status-pill.out { background: var(--red-bg); color: var(--red); }
+    .status-pill.out .dot { background: var(--red); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
     .btn {
-      display: block; width: 100%; padding: 16px; border: none;
-      border-radius: 12px; font-size: 18px; font-weight: 600;
-      cursor: pointer; transition: transform 0.1s, opacity 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 18px 24px; border: none;
+      border-radius: 14px; font-size: 17px; font-weight: 700;
+      cursor: pointer; transition: all 0.15s ease;
+      letter-spacing: -0.01em;
     }
     .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn-in { background: #28a745; color: white; }
-    .btn-out { background: #dc3545; color: white; }
-    .message { margin-top: 20px; padding: 12px; border-radius: 8px; font-size: 14px; }
-    .message.success { background: #d4edda; color: #155724; }
-    .message.error { background: #f8d7da; color: #721c24; }
-    .loading { color: #999; font-size: 18px; }
-    .time { color: #999; font-size: 13px; margin-top: 6px; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-in { background: var(--green); color: #052e16; }
+    .btn-in:hover:not(:disabled) { background: #16a34a; }
+    .btn-out { background: var(--red); color: #fff; }
+    .btn-out:hover:not(:disabled) { background: #dc2626; }
+
+    .btn svg { width: 20px; height: 20px; }
+
+    .message {
+      margin-top: 20px; padding: 14px 16px; border-radius: 12px;
+      font-size: 14px; font-weight: 500;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .message svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .message.success { background: var(--green-bg); color: var(--green); }
+    .message.error { background: var(--red-bg); color: var(--red); }
+    .message.warning { background: var(--yellow-bg); color: var(--yellow); }
+
+    .loading {
+      color: var(--text-muted); font-size: 16px;
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid var(--card-border);
+      border-top-color: var(--text); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .timestamp { color: var(--text-muted); font-size: 12px; margin-top: 12px; }
+
+    .footer { margin-top: 32px; font-size: 12px; color: var(--text-muted); opacity: 0.5; }
   </style>
 </head>
 <body>
   <div class="card" id="app">
-    <div class="loading">Loading...</div>
+    <div class="loading">
+      <div class="spinner"></div>
+      Loading...
+    </div>
   </div>
+  <div class="footer">Attendance System</div>
 
   <script>
     const token = window.location.pathname.split('/clock/')[1];
@@ -57,7 +146,10 @@
       try {
         const res = await fetch(`/api/status/${token}`);
         if (!res.ok) {
-          app.innerHTML = '<div class="loading">Employee not found.</div>';
+          app.innerHTML = `<div class="loading">
+            <svg width="48" height="48" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            Employee not found
+          </div>`;
           return;
         }
         const data = await res.json();
@@ -65,22 +157,33 @@
         currentStatus = data.status;
         render();
       } catch {
-        app.innerHTML = '<div class="loading">Connection error. Please try again.</div>';
+        app.innerHTML = '<div class="loading">Connection error. Pull down to retry.</div>';
       }
     }
 
     function render(message) {
       const nextAction = currentStatus === 'out' ? 'in' : 'out';
-      const btnClass = nextAction === 'in' ? 'btn-in' : 'btn-out';
-      const btnText = nextAction === 'in' ? 'Clock In' : 'Clock Out';
-      const lastTime = '';
+      const isIn = currentStatus === 'in';
+
+      const clockIcon = nextAction === 'in'
+        ? '<svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>'
+        : '<svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 7l-10 10M7 7l10 10"/></svg>';
 
       app.innerHTML = `
-        <div class="name">${employeeName}</div>
-        <div class="status">
-          Currently: <span class="badge ${currentStatus}">${currentStatus === 'in' ? 'Clocked In' : 'Clocked Out'}</span>
+        <div class="icon ${isIn ? 'clocked-in' : 'clocked-out'}">
+          ${isIn ? '<svg width="28" height="28" fill="none" stroke="#22c55e" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'
+                 : '<svg width="28" height="28" fill="none" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'}
         </div>
-        <button class="btn ${btnClass}" id="clockBtn">${btnText}</button>
+        <div class="greeting">Welcome back</div>
+        <div class="name">${employeeName}</div>
+        <div class="status-pill ${currentStatus}">
+          <span class="dot"></span>
+          ${isIn ? 'Currently Clocked In' : 'Currently Clocked Out'}
+        </div>
+        <button class="btn btn-${nextAction}" id="clockBtn">
+          ${clockIcon}
+          Clock ${nextAction === 'in' ? 'In' : 'Out'}
+        </button>
         ${message || ''}
       `;
 
@@ -101,11 +204,11 @@
     async function doClock() {
       const btn = document.getElementById('clockBtn');
       btn.disabled = true;
-      btn.textContent = 'Getting location...';
+      btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;"></div> Verifying location...';
 
       const location = await getLocation();
 
-      btn.textContent = 'Submitting...';
+      btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;"></div> Submitting...';
 
       try {
         const res = await fetch(`/api/clock/${token}`, {
@@ -116,19 +219,35 @@
         const data = await res.json();
 
         if (!res.ok) {
-          render(`<div class="message error">${data.error}</div>`);
+          render(`<div class="message error">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            ${data.error}
+          </div>`);
           return;
         }
 
         currentStatus = data.type === 'in' ? 'in' : 'out';
-        const time = new Date(data.timestamp).toLocaleTimeString();
+        const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const fallbackNote = data.verification === 'geo-fallback'
+          ? `<div class="message warning">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2M12 15h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+              WiFi not verified &mdash; location fallback used
+            </div>`
+          : '';
+
         render(`
           <div class="message success">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
             Clocked ${data.type} at ${time}
           </div>
+          ${fallbackNote}
         `);
       } catch {
-        render('<div class="message error">Connection error. Please try again.</div>');
+        render(`<div class="message error">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          Connection error. Please try again.
+        </div>`);
       }
     }
 

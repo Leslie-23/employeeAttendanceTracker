@@ -3,116 +3,277 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
   <title>Attendance Admin</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f0f2f5; padding: 20px;
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-border: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,0.12);
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,0.12);
+      --yellow: #eab308;
+      --yellow-bg: rgba(234,179,8,0.12);
+      --input-bg: #0f172a;
+      --radius: 14px;
     }
-    .container { max-width: 900px; margin: 0 auto; }
-    h1 { margin-bottom: 24px; }
-    .section {
-      background: white; border-radius: 12px; padding: 24px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 24px;
-    }
-    h2 { margin-bottom: 16px; font-size: 18px; }
-    .add-form { display: flex; gap: 12px; margin-bottom: 20px; }
-    .add-form input {
-      flex: 1; padding: 10px 14px; border: 1px solid #ddd;
-      border-radius: 8px; font-size: 15px;
-    }
-    .add-form button {
-      padding: 10px 20px; background: #007bff; color: white;
-      border: none; border-radius: 8px; font-size: 15px; cursor: pointer;
-    }
-    .add-form button:hover { background: #0056b3; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #eee; }
-    th { font-weight: 600; color: #555; font-size: 13px; text-transform: uppercase; }
-    .qr-cell img { width: 80px; height: 80px; cursor: pointer; }
-    .actions button {
-      padding: 6px 12px; border: none; border-radius: 6px;
-      cursor: pointer; font-size: 13px; margin-right: 4px;
-    }
-    .btn-qr { background: #e9ecef; }
-    .btn-delete { background: #f8d7da; color: #721c24; }
-    .btn-print { background: #d4edda; color: #155724; }
 
-    /* QR Modal */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* --- Top bar --- */
+    .topbar {
+      background: var(--card);
+      border-bottom: 1px solid var(--card-border);
+      padding: 16px 20px;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-inner {
+      max-width: 960px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar h1 {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .topbar h1 svg { width: 22px; height: 22px; color: var(--accent); }
+    .live-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* --- Layout --- */
+    .container { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.35s ease;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .section-header h2 {
+      font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-header h2 svg { width: 18px; height: 18px; color: var(--text-muted); }
+    .count-badge {
+      background: var(--card-border); color: var(--text-muted);
+      font-size: 12px; font-weight: 600; padding: 2px 10px;
+      border-radius: 100px;
+    }
+
+    /* --- Form --- */
+    .add-form {
+      display: flex; gap: 10px; margin-bottom: 20px;
+    }
+    .add-form input {
+      flex: 1; padding: 12px 16px;
+      background: var(--input-bg); border: 1px solid var(--card-border);
+      border-radius: 10px; color: var(--text); font-size: 15px;
+      outline: none; transition: border-color 0.15s;
+    }
+    .add-form input:focus { border-color: var(--accent); }
+    .add-form input::placeholder { color: var(--text-dim); }
+    .add-form button {
+      padding: 12px 24px; background: var(--accent); color: white;
+      border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; transition: background 0.15s;
+    }
+    .add-form button:hover { background: var(--accent-hover); }
+
+    /* --- Table --- */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -24px; padding: 0 24px; }
+    table { width: 100%; border-collapse: collapse; min-width: 500px; }
+    th {
+      text-align: left; padding: 8px 12px;
+      font-size: 11px; font-weight: 700; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--card-border);
+    }
+    td {
+      padding: 14px 12px; border-bottom: 1px solid rgba(51,65,85,0.4);
+      font-size: 14px; color: var(--text);
+    }
+    tr:last-child td { border-bottom: none; }
+    .emp-name { font-weight: 600; }
+
+    /* --- Badges --- */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 100px;
+      font-size: 12px; font-weight: 600;
+    }
+    .badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .badge.in { background: var(--green-bg); color: var(--green); }
+    .badge.in .dot { background: var(--green); }
+    .badge.out { background: var(--red-bg); color: var(--red); }
+    .badge.out .dot { background: var(--red); }
+    .badge.wifi { background: var(--green-bg); color: var(--green); }
+    .badge.geo-fallback { background: var(--yellow-bg); color: var(--yellow); }
+
+    /* --- Action buttons --- */
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .actions button {
+      padding: 7px 14px; border: 1px solid var(--card-border);
+      border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+      background: transparent; color: var(--text-muted); transition: all 0.15s;
+    }
+    .actions button:hover { background: var(--card-border); color: var(--text); }
+    .actions .btn-delete { border-color: rgba(239,68,68,0.3); color: var(--red); }
+    .actions .btn-delete:hover { background: var(--red-bg); }
+
+    /* --- Filters --- */
+    .filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-row input, .filter-row select {
+      padding: 10px 14px;
+      background: var(--input-bg); border: 1px solid var(--card-border);
+      border-radius: 10px; color: var(--text); font-size: 14px; outline: none;
+    }
+    .filter-row input:focus, .filter-row select:focus { border-color: var(--accent); }
+    .filter-row select option { background: var(--card); }
+
+    /* --- Modal --- */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); z-index: 100;
-      justify-content: center; align-items: center;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+      z-index: 100; justify-content: center; align-items: center;
+      padding: 20px;
     }
     .modal-overlay.active { display: flex; }
     .modal {
-      background: white; border-radius: 16px; padding: 32px;
-      text-align: center; max-width: 350px; width: 90%;
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: 20px; padding: 36px 28px;
+      text-align: center; max-width: 380px; width: 100%;
+      animation: fadeUp 0.25s ease;
     }
-    .modal h3 { margin-bottom: 16px; }
-    .modal img { width: 250px; height: 250px; }
-    .modal .url { font-size: 12px; color: #666; margin-top: 8px; word-break: break-all; }
-    .modal button {
-      margin-top: 16px; padding: 8px 20px; border: none;
-      border-radius: 8px; cursor: pointer; font-size: 14px;
+    .modal h3 { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+    .modal .qr-container {
+      background: white; border-radius: 12px; padding: 16px;
+      display: inline-block; margin-bottom: 12px;
     }
-    .btn-close { background: #e9ecef; }
-    .btn-dl { background: #007bff; color: white; margin-right: 8px; }
+    .modal img { width: 220px; height: 220px; display: block; }
+    .modal .url {
+      font-size: 11px; color: var(--text-dim);
+      word-break: break-all; margin-bottom: 20px;
+      font-family: 'SF Mono', 'Consolas', monospace;
+    }
+    .modal-btns { display: flex; gap: 10px; }
+    .modal-btns button {
+      flex: 1; padding: 12px; border: none; border-radius: 10px;
+      cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s;
+    }
+    .btn-dl { background: var(--accent); color: white; }
+    .btn-dl:hover { background: var(--accent-hover); }
+    .btn-print-modal { background: var(--green-bg); color: var(--green); }
+    .btn-close { background: var(--card-border); color: var(--text-muted); }
+    .btn-close:hover { color: var(--text); }
 
-    .filter-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-    .filter-row input, .filter-row select {
-      padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;
+    .empty-state {
+      text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 14px;
     }
-    .badge {
-      display: inline-block; padding: 2px 10px; border-radius: 12px;
-      font-size: 12px; font-weight: 600;
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .section { padding: 16px; }
+      .table-wrap { margin: 0 -16px; padding: 0 16px; }
+      .add-form { flex-direction: column; }
+      .add-form button { width: 100%; }
+      .modal { padding: 24px 20px; }
+      .modal img { width: 180px; height: 180px; }
+      .modal-btns { flex-direction: column; }
     }
-    .badge.in { background: #d4edda; color: #155724; }
-    .badge.out { background: #f8d7da; color: #721c24; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Attendance Admin</h1>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <h1>
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Attendance
+      </h1>
+      <div class="live-dot" title="System Online"></div>
+    </div>
+  </div>
 
-    <!-- Add Employee -->
+  <div class="container">
+    <!-- Employees -->
     <div class="section">
-      <h2>Employees</h2>
+      <div class="section-header">
+        <h2>
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          Employees
+        </h2>
+        <span class="count-badge" id="empCount">0</span>
+      </div>
       <div class="add-form">
-        <input type="text" id="empName" placeholder="Employee name">
+        <input type="text" id="empName" placeholder="Enter employee name..." onkeydown="if(event.key==='Enter')addEmployee()">
         <button onclick="addEmployee()">Add Employee</button>
       </div>
-      <table>
-        <thead><tr><th>Name</th><th>QR</th><th>Actions</th></tr></thead>
-        <tbody id="empList"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>QR Code</th><th>Actions</th></tr></thead>
+          <tbody id="empList"></tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- Attendance Log -->
+    <!-- Attendance -->
     <div class="section">
-      <h2>Attendance Log</h2>
+      <div class="section-header">
+        <h2>
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          Attendance Log
+        </h2>
+      </div>
       <div class="filter-row">
         <input type="date" id="filterDate" onchange="loadAttendance()">
         <select id="filterEmployee" onchange="loadAttendance()">
           <option value="">All Employees</option>
         </select>
       </div>
-      <table>
-        <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>IP</th></tr></thead>
-        <tbody id="attendanceList"></tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>Verified</th><th>IP</th></tr></thead>
+          <tbody id="attendanceList"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <!-- QR Modal -->
-  <div class="modal-overlay" id="qrModal">
+  <div class="modal-overlay" id="qrModal" onclick="if(event.target===this)closeModal()">
     <div class="modal">
       <h3 id="qrName"></h3>
-      <img id="qrImg">
+      <div class="qr-container">
+        <img id="qrImg" alt="QR Code">
+      </div>
       <div class="url" id="qrUrl"></div>
-      <div style="margin-top: 16px;">
+      <div class="modal-btns">
         <button class="btn-dl" onclick="downloadQR()">Download</button>
+        <button class="btn-print-modal" onclick="printCurrentQR()">Print</button>
         <button class="btn-close" onclick="closeModal()">Close</button>
       </div>
     </div>
@@ -125,30 +286,51 @@
       const res = await fetch('/api/employees');
       employees = await res.json();
 
-      const list = document.getElementById('empList');
-      list.innerHTML = employees.map(e => `
-        <tr>
-          <td>${e.name}</td>
-          <td><button class="actions btn-qr" onclick="showQR('${e.qrToken}', '${e.name}')">View QR</button></td>
-          <td class="actions">
-            <button class="btn-print" onclick="printQR('${e.qrToken}', '${e.name}')">Print</button>
-            <button class="btn-delete" onclick="deleteEmployee('${e._id}')">Delete</button>
-          </td>
-        </tr>
-      `).join('');
+      document.getElementById('empCount').textContent = employees.length;
 
-      // Update filter dropdown
+      const list = document.getElementById('empList');
+      if (employees.length === 0) {
+        list.innerHTML = '<tr><td colspan="3"><div class="empty-state">No employees yet. Add one above.</div></td></tr>';
+      } else {
+        list.innerHTML = employees.map(e => `
+          <tr>
+            <td class="emp-name">${esc(e.name)}</td>
+            <td>
+              <div class="actions">
+                <button onclick="showQR('${e.qrToken}', '${esc(e.name)}')">View QR</button>
+              </div>
+            </td>
+            <td>
+              <div class="actions">
+                <button onclick="showQR('${e.qrToken}', '${esc(e.name)}')">Print</button>
+                <button class="btn-delete" onclick="deleteEmployee('${e._id}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Update filter
       const select = document.getElementById('filterEmployee');
       const current = select.value;
       select.innerHTML = '<option value="">All Employees</option>' +
-        employees.map(e => `<option value="${e._id}">${e.name}</option>`).join('');
+        employees.map(e => `<option value="${e._id}">${esc(e.name)}</option>`).join('');
       select.value = current;
+    }
+
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
     }
 
     async function addEmployee() {
       const input = document.getElementById('empName');
       const name = input.value.trim();
       if (!name) return;
+
+      const btn = input.nextElementSibling;
+      btn.disabled = true; btn.textContent = 'Adding...';
 
       await fetch('/api/employees', {
         method: 'POST',
@@ -157,11 +339,12 @@
       });
 
       input.value = '';
+      btn.disabled = false; btn.textContent = 'Add Employee';
       loadEmployees();
     }
 
     async function deleteEmployee(id) {
-      if (!confirm('Delete this employee and all their records?')) return;
+      if (!confirm('Delete this employee and all their attendance records?')) return;
       await fetch(`/api/employees/${id}`, { method: 'DELETE' });
       loadEmployees();
       loadAttendance();
@@ -190,22 +373,20 @@
       a.click();
     }
 
-    function printQR(token, name) {
-      showQR(token, name).then(() => {
-        setTimeout(() => {
-          const printWin = window.open('', '_blank');
-          const img = document.getElementById('qrImg').src;
-          printWin.document.write(`
-            <html><body style="text-align:center;font-family:sans-serif;padding:40px;">
-              <h2>${name}</h2>
-              <img src="${img}" style="width:300px;height:300px;">
-              <p style="color:#666;margin-top:16px;">Scan to clock in/out</p>
-            </body></html>
-          `);
-          printWin.document.close();
-          printWin.print();
-        }, 500);
-      });
+    function printCurrentQR() {
+      const img = document.getElementById('qrImg').src;
+      const name = document.getElementById('qrName').textContent;
+      const printWin = window.open('', '_blank');
+      printWin.document.write(`
+        <html><body style="text-align:center;font-family:-apple-system,sans-serif;padding:60px 40px;">
+          <h1 style="font-size:28px;margin-bottom:8px;">${name}</h1>
+          <p style="color:#666;margin-bottom:32px;font-size:14px;">Employee Attendance</p>
+          <img src="${img}" style="width:280px;height:280px;">
+          <p style="color:#999;margin-top:24px;font-size:13px;">Scan this QR code to clock in/out</p>
+        </body></html>
+      `);
+      printWin.document.close();
+      setTimeout(() => printWin.print(), 300);
     }
 
     async function loadAttendance() {
@@ -219,14 +400,25 @@
       const res = await fetch(`/api/attendance?${params}`);
       const records = await res.json();
 
-      document.getElementById('attendanceList').innerHTML = records.map(r => `
-        <tr>
-          <td>${r.employeeId ? r.employeeId.name : 'Unknown'}</td>
-          <td><span class="badge ${r.type}">${r.type === 'in' ? 'IN' : 'OUT'}</span></td>
-          <td>${new Date(r.timestamp).toLocaleString()}</td>
-          <td>${r.ip || '-'}</td>
-        </tr>
-      `).join('') || '<tr><td colspan="4" style="text-align:center;color:#999;">No records</td></tr>';
+      const list = document.getElementById('attendanceList');
+      if (records.length === 0) {
+        list.innerHTML = '<tr><td colspan="5"><div class="empty-state">No records for this date.</div></td></tr>';
+      } else {
+        list.innerHTML = records.map(r => {
+          const isGeoFallback = r.verification === 'geo-fallback';
+          const verClass = isGeoFallback ? 'geo-fallback' : 'wifi';
+          const verLabel = isGeoFallback ? 'GPS Fallback' : 'WiFi';
+          return `
+            <tr>
+              <td class="emp-name">${r.employeeId ? esc(r.employeeId.name) : 'Unknown'}</td>
+              <td><span class="badge ${r.type}"><span class="dot"></span>${r.type === 'in' ? 'IN' : 'OUT'}</span></td>
+              <td>${new Date(r.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+              <td><span class="badge ${verClass}">${verLabel}</span></td>
+              <td style="color:var(--text-dim);font-family:monospace;font-size:12px;">${r.ip || '-'}</td>
+            </tr>
+          `;
+        }).join('');
+      }
     }
 
     // Init

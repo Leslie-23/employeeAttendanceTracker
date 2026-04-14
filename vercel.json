@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/clock/:token", "destination": "/clock.html" },
+    { "source": "/admin", "destination": "/admin.html" }
+  ]
+}
