@@ -260,9 +260,22 @@
         const data = await res.json();
 
         if (!res.ok) {
+          let debugInfo = '';
+          if (data.debug) {
+            const d = data.debug;
+            debugInfo = `<div style="margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;opacity:0.85;text-align:left;line-height:1.6;">
+              GPS: ${d.gotLocation ? 'OK' : 'NOT SHARED'}<br>
+              ${d.distanceMeters != null ? 'DISTANCE: ' + d.distanceMeters + 'm (limit ' + d.allowedRadius + 'm)<br>' : ''}
+              ${!d.officeConfigured ? 'SERVER NOT CONFIGURED<br>' : ''}
+              IP: ${d.ip}
+            </div>`;
+          }
           render(`<div class="message error">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20"/><path d="M12 8v4M12 16h.01"/></svg>
-            ${data.error}
+            <div>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display:inline;vertical-align:-3px;margin-right:6px;"><rect x="2" y="2" width="20" height="20"/><path d="M12 8v4M12 16h.01"/></svg>
+              ${data.error}
+              ${debugInfo}
+            </div>
           </div>`);
           return;
         }

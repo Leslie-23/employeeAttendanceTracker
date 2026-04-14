@@ -8,7 +8,8 @@
       "Bash(curl:*)",
       "Bash(python -m json.tool)",
       "Bash(taskkill //F //IM node.exe)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(ipconfig)"
     ]
   }
 }

@@ -98,6 +98,9 @@ app.post('/api/clock/:token', async (req, res) => {
     const { lat, lng } = req.body;
 
     const onNetwork = isOnOfficeNetwork(clientIp);
+    const distance = (lat != null && lng != null && OFFICE_LAT && OFFICE_LNG)
+      ? Math.round(distanceMeters(OFFICE_LAT, OFFICE_LNG, lat, lng))
+      : null;
     const inGeofence = lat != null && lng != null && isWithinGeofence(lat, lng);
     let verification;
 
@@ -106,8 +109,23 @@ app.post('/api/clock/:token', async (req, res) => {
     } else if (inGeofence) {
       verification = 'geo-fallback';
     } else {
+      let reason = 'Unable to verify your location.';
+      if (lat == null || lng == null) {
+        reason = 'Location permission denied. Please enable GPS and try again.';
+      } else if (distance != null) {
+        reason = `Too far from the shop (${distance}m away, max ${GEOFENCE_RADIUS}m allowed).`;
+      } else if (OFFICE_LAT === 0 || !OFFICE_LAT) {
+        reason = 'Server not configured with shop coordinates. Contact admin.';
+      }
       return res.status(403).json({
-        error: 'You must be on the office WiFi or at the shop location to clock in/out.'
+        error: reason,
+        debug: {
+          gotLocation: lat != null && lng != null,
+          distanceMeters: distance,
+          allowedRadius: GEOFENCE_RADIUS,
+          officeConfigured: !!(OFFICE_LAT && OFFICE_LNG),
+          ip: clientIp
+        }
       });
     }
 
