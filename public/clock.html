@@ -79,12 +79,15 @@
 
     .name {
       font-family: 'Syne', sans-serif;
-      font-size: 34px;
+      font-size: clamp(22px, 7vw, 32px);
       font-weight: 800;
       letter-spacing: -0.03em;
-      line-height: 1;
+      line-height: 1.05;
       margin-bottom: 8px;
       text-transform: uppercase;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      hyphens: auto;
     }
     .greeting {
       font-family: 'JetBrains Mono', monospace;
