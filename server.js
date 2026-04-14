@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const path = require('path');
 
 const Employee = require('./models/Employee');
@@ -141,7 +141,7 @@ app.post('/api/employees', async (req, res) => {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Name is required' });
 
-    const employee = await Employee.create({ name, qrToken: uuidv4() });
+    const employee = await Employee.create({ name, qrToken: randomUUID() });
     res.json(employee);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

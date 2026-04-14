@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const QRCode = require('qrcode');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 
 const Employee = require('../models/Employee');
 const Attendance = require('../models/Attendance');
@@ -11,11 +11,22 @@ app.use(express.json());
 app.set('trust proxy', true);
 
 // --- DB Connection (reuse across serverless invocations) ---
-let isConnected = false;
+let connectionPromise = null;
 async function connectDB() {
-  if (isConnected) return;
-  await mongoose.connect(process.env.MONGODB_URI);
-  isConnected = true;
+  if (mongoose.connection.readyState === 1) return;
+  if (connectionPromise) return connectionPromise;
+
+  connectionPromise = mongoose.connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 8000,
+    bufferCommands: false
+  });
+
+  try {
+    await connectionPromise;
+  } catch (err) {
+    connectionPromise = null;
+    throw err;
+  }
 }
 
 const OFFICE_LAT = parseFloat(process.env.OFFICE_LAT);
@@ -54,14 +65,24 @@ function isWithinGeofence(lat, lng) {
   return distanceMeters(OFFICE_LAT, OFFICE_LNG, lat, lng) <= GEOFENCE_RADIUS;
 }
 
+// Health check (no DB required) - hit /api/health to verify the function runs
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    hasMongoUri: !!process.env.MONGODB_URI,
+    hasLat: !!process.env.OFFICE_LAT,
+    dbState: mongoose.connection.readyState
+  });
+});
+
 // --- Middleware: connect to DB before each request ---
 app.use(async (req, res, next) => {
   try {
     await connectDB();
     next();
   } catch (err) {
-    console.error('DB connection error:', err);
-    res.status(500).json({ error: 'Database connection failed' });
+    console.error('DB connection error:', err.message, err);
+    res.status(500).json({ error: 'Database connection failed: ' + err.message });
   }
 });
 
@@ -144,7 +165,7 @@ app.post('/api/employees', async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Name is required' });
-    const employee = await Employee.create({ name, qrToken: uuidv4() });
+    const employee = await Employee.create({ name, qrToken: randomUUID() });
     res.json(employee);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
