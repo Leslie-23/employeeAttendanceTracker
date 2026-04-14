@@ -3,34 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#F9FAFB">
+  <meta name="theme-color" content="#FEFCE8">
   <title>Clock In/Out</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #F9FAFB;
+      --bg: #FEFCE8;
       --card: #FFFFFF;
-      --card-border: #E5E7EB;
-      --text: #111827;
-      --text-muted: #6B7280;
+      --ink: #111111;
+      --muted: #555555;
       --primary: #2563EB;
       --green: #16A34A;
-      --green-bg: #DCFCE7;
-      --green-border: #86EFAC;
       --red: #DC2626;
-      --red-bg: #FEE2E2;
-      --red-border: #FCA5A5;
-      --yellow: #F59E0B;
-      --yellow-bg: #FEF3C7;
-      --yellow-border: #FCD34D;
-      --radius: 6px;
+      --yellow: #FACC15;
+      --shadow: 6px 6px 0 var(--ink);
+      --shadow-sm: 4px 4px 0 var(--ink);
+      --shadow-pressed: 2px 2px 0 var(--ink);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, sans-serif;
       background: var(--bg);
-      color: var(--text);
+      color: var(--ink);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -38,99 +36,135 @@
       min-height: 100dvh;
       padding: 24px 16px;
       -webkit-font-smoothing: antialiased;
+      background-image:
+        linear-gradient(var(--ink) 1px, transparent 1px),
+        linear-gradient(90deg, var(--ink) 1px, transparent 1px);
+      background-size: 40px 40px;
+      background-position: -1px -1px;
+      background-color: var(--bg);
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: var(--bg);
+      opacity: 0.92;
+      z-index: -1;
     }
 
     .card {
       background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius);
-      padding: 40px 28px;
+      border: 3px solid var(--ink);
+      border-radius: 0;
+      padding: 36px 28px;
       text-align: center;
       max-width: 420px;
       width: 100%;
-      box-shadow: 0 1px 3px rgba(17,24,39,0.04), 0 1px 2px rgba(17,24,39,0.03);
-      animation: fadeUp 0.4s ease;
+      box-shadow: var(--shadow);
+      animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translate(-6px, -6px); }
+      to { opacity: 1; transform: translate(0, 0); }
     }
 
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
+    .tag {
+      display: inline-block;
+      background: var(--ink); color: var(--bg);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      padding: 4px 10px; letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
     }
 
-    .icon {
-      width: 56px; height: 56px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 20px;
-      font-size: 24px;
+    .name {
+      font-family: 'Syne', sans-serif;
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 8px;
+      text-transform: uppercase;
     }
-    .icon.clocked-in { background: var(--green-bg); }
-    .icon.clocked-out { background: var(--red-bg); }
-
-    .greeting { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
-    .name { font-size: 26px; font-weight: 700; margin-bottom: 24px; letter-spacing: -0.02em; }
+    .greeting {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin-bottom: 24px;
+    }
 
     .status-pill {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 14px; border-radius: 4px;
-      font-size: 13px; font-weight: 600;
-      margin-bottom: 32px;
-      border: 1px solid transparent;
+      padding: 8px 14px; border: 2px solid var(--ink);
+      font-size: 12px; font-weight: 700;
+      margin-bottom: 28px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      font-family: 'JetBrains Mono', monospace;
     }
     .status-pill .dot {
-      width: 7px; height: 7px; border-radius: 50%;
+      width: 10px; height: 10px; border: 2px solid var(--ink);
     }
-    .status-pill.in { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
-    .status-pill.in .dot { background: var(--green); animation: pulse 2s infinite; }
-    .status-pill.out { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
-    .status-pill.out .dot { background: var(--red); }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
+    .status-pill.in { background: var(--green); color: var(--ink); }
+    .status-pill.in .dot { background: var(--ink); animation: blink 1.2s infinite; }
+    .status-pill.out { background: var(--red); color: #FFF; border-color: var(--ink); }
+    .status-pill.out .dot { background: var(--ink); }
+    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0.2} }
 
     .btn {
       display: flex; align-items: center; justify-content: center; gap: 10px;
-      width: 100%; padding: 16px 24px; border: 1px solid transparent;
-      border-radius: 6px; font-size: 16px; font-weight: 600;
-      cursor: pointer; transition: all 0.15s ease;
-      letter-spacing: -0.01em;
+      width: 100%; padding: 18px 24px;
+      border: 3px solid var(--ink); border-radius: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: 18px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.03em;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
     }
-    .btn:active { transform: scale(0.98); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .btn-in { background: var(--green); color: #fff; border-color: var(--green); }
-    .btn-in:hover:not(:disabled) { background: #15803D; border-color: #15803D; }
-    .btn-out { background: var(--red); color: #fff; border-color: var(--red); }
-    .btn-out:hover:not(:disabled) { background: #B91C1C; border-color: #B91C1C; }
-
-    .btn svg { width: 18px; height: 18px; }
+    .btn:active:not(:disabled) {
+      transform: translate(2px, 2px);
+      box-shadow: var(--shadow-pressed);
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-in { background: var(--green); color: var(--ink); }
+    .btn-out { background: var(--red); color: #FFF; }
+    .btn svg { width: 20px; height: 20px; stroke-width: 2.5; }
 
     .message {
-      margin-top: 16px; padding: 12px 14px; border-radius: 6px;
-      font-size: 13px; font-weight: 500;
+      margin-top: 16px; padding: 12px 14px;
+      border: 2px solid var(--ink);
+      font-size: 13px; font-weight: 600;
       display: flex; align-items: center; gap: 10px;
-      border: 1px solid transparent; text-align: left;
+      text-align: left;
+      box-shadow: var(--shadow-pressed);
     }
-    .message svg { width: 16px; height: 16px; flex-shrink: 0; }
-    .message.success { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
-    .message.error { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
-    .message.warning { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow-border); }
+    .message svg { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 2.5; }
+    .message.success { background: var(--green); color: var(--ink); }
+    .message.error { background: var(--red); color: #FFF; }
+    .message.warning { background: var(--yellow); color: var(--ink); }
 
     .loading {
-      color: var(--text-muted); font-size: 15px;
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
       display: flex; flex-direction: column; align-items: center; gap: 16px;
     }
     .spinner {
-      width: 28px; height: 28px; border: 2.5px solid var(--card-border);
-      border-top-color: var(--primary); border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      width: 24px; height: 24px;
+      border: 3px solid var(--ink);
+      border-right-color: transparent;
+      animation: spin 0.6s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .timestamp { color: var(--text-muted); font-size: 12px; margin-top: 12px; }
-
-    .footer { margin-top: 24px; font-size: 12px; color: var(--text-muted); letter-spacing: 0.02em; }
+    .footer {
+      margin-top: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.15em;
+    }
+    .footer span { border-bottom: 2px solid var(--ink); padding-bottom: 2px; }
   </style>
 </head>
 <body>
@@ -140,7 +174,7 @@
       Loading...
     </div>
   </div>
-  <div class="footer">Attendance System</div>
+  <div class="footer"><span>// ATTENDANCE.SYS</span></div>
 
   <script>
     const token = window.location.pathname.split('/clock/')[1];
@@ -154,8 +188,8 @@
         const res = await fetch(`/api/status/${token}`);
         if (!res.ok) {
           app.innerHTML = `<div class="loading">
-            <svg width="40" height="40" fill="none" stroke="#DC2626" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
-            Employee not found
+            <svg width="40" height="40" fill="none" stroke="#111" stroke-width="3" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            Employee Not Found
           </div>`;
           return;
         }
@@ -164,7 +198,7 @@
         currentStatus = data.status;
         render();
       } catch {
-        app.innerHTML = '<div class="loading">Connection error. Pull down to retry.</div>';
+        app.innerHTML = '<div class="loading">Connection Error</div>';
       }
     }
 
@@ -172,23 +206,20 @@
       const nextAction = currentStatus === 'out' ? 'in' : 'out';
       const isIn = currentStatus === 'in';
 
-      const clockIcon = nextAction === 'in'
-        ? '<svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>'
-        : '<svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M17 7l-10 10M7 7l10 10"/></svg>';
+      const icon = nextAction === 'in'
+        ? '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M3 3h18v18H3z"/></svg>'
+        : '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>';
 
       app.innerHTML = `
-        <div class="icon ${isIn ? 'clocked-in' : 'clocked-out'}">
-          ${isIn ? '<svg width="28" height="28" fill="none" stroke="#16A34A" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'
-                 : '<svg width="28" height="28" fill="none" stroke="#DC2626" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>'}
-        </div>
-        <div class="greeting">Welcome back</div>
+        <div class="tag">● EMPLOYEE</div>
         <div class="name">${employeeName}</div>
+        <div class="greeting">[ Terminal Access ]</div>
         <div class="status-pill ${currentStatus}">
           <span class="dot"></span>
-          ${isIn ? 'Currently Clocked In' : 'Currently Clocked Out'}
+          ${isIn ? 'Currently IN' : 'Currently OUT'}
         </div>
         <button class="btn btn-${nextAction}" id="clockBtn">
-          ${clockIcon}
+          ${icon}
           Clock ${nextAction === 'in' ? 'In' : 'Out'}
         </button>
         ${message || ''}
@@ -211,11 +242,11 @@
     async function doClock() {
       const btn = document.getElementById('clockBtn');
       btn.disabled = true;
-      btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;"></div> Verifying location...';
+      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2.5px;"></div> VERIFYING...';
 
       const location = await getLocation();
 
-      btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;"></div> Submitting...';
+      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2.5px;"></div> SUBMITTING...';
 
       try {
         const res = await fetch(`/api/clock/${token}`, {
@@ -227,7 +258,7 @@
 
         if (!res.ok) {
           render(`<div class="message error">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20"/><path d="M12 8v4M12 16h.01"/></svg>
             ${data.error}
           </div>`);
           return;
@@ -238,22 +269,22 @@
 
         const fallbackNote = data.verification === 'geo-fallback'
           ? `<div class="message warning">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2M12 15h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-              WiFi not verified &mdash; location fallback used
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M2 22L12 2l10 20z"/><path d="M12 9v4M12 18h.01"/></svg>
+              WiFi unverified &mdash; GPS fallback
             </div>`
           : '';
 
         render(`
           <div class="message success">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-            Clocked ${data.type} at ${time}
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20"/><path d="M7 12l3 3 7-7"/></svg>
+            Clocked ${data.type.toUpperCase()} @ ${time}
           </div>
           ${fallbackNote}
         `);
       } catch {
         render(`<div class="message error">
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-          Connection error. Please try again.
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20"/><path d="M12 8v4M12 16h.01"/></svg>
+          Connection Error
         </div>`);
       }
     }

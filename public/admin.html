@@ -3,220 +3,301 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#F9FAFB">
-  <title>Attendance Admin</title>
+  <meta name="theme-color" content="#FEFCE8">
+  <title>Attendance // Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #F9FAFB;
+      --bg: #FEFCE8;
       --card: #FFFFFF;
-      --card-border: #E5E7EB;
-      --card-border-strong: #D1D5DB;
-      --text: #111827;
-      --text-muted: #6B7280;
-      --text-dim: #9CA3AF;
-      --accent: #2563EB;
-      --accent-hover: #1D4ED8;
+      --ink: #111111;
+      --muted: #6B7280;
+      --primary: #2563EB;
       --green: #16A34A;
-      --green-bg: #DCFCE7;
-      --green-border: #86EFAC;
+      --green-soft: #BBF7D0;
       --red: #DC2626;
-      --red-bg: #FEE2E2;
-      --red-border: #FCA5A5;
-      --yellow: #F59E0B;
-      --yellow-bg: #FEF3C7;
-      --yellow-border: #FCD34D;
-      --input-bg: #FFFFFF;
-      --radius: 6px;
+      --red-soft: #FECACA;
+      --yellow: #FACC15;
+      --yellow-soft: #FEF3C7;
+      --shadow: 6px 6px 0 var(--ink);
+      --shadow-sm: 4px 4px 0 var(--ink);
+      --shadow-pressed: 2px 2px 0 var(--ink);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+      font-family: 'Inter', -apple-system, sans-serif;
       background: var(--bg);
-      color: var(--text);
+      color: var(--ink);
       padding: 0;
       -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle at 1px 1px, var(--ink) 1px, transparent 0);
+      background-size: 24px 24px;
     }
 
     /* --- Top bar --- */
     .topbar {
-      background: var(--card);
-      border-bottom: 1px solid var(--card-border);
+      background: var(--ink);
+      color: var(--bg);
       padding: 14px 20px;
       position: sticky; top: 0; z-index: 50;
+      border-bottom: 3px solid var(--ink);
     }
     .topbar-inner {
-      max-width: 960px; margin: 0 auto;
+      max-width: 1000px; margin: 0 auto;
       display: flex; align-items: center; justify-content: space-between;
     }
     .topbar h1 {
-      font-size: 18px; font-weight: 700; letter-spacing: -0.02em;
+      font-family: 'Syne', sans-serif;
+      font-size: 22px; font-weight: 800;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
       display: flex; align-items: center; gap: 10px;
     }
-    .topbar h1 svg { width: 22px; height: 22px; color: var(--accent); }
-    .live-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
-      animation: pulse 2s infinite;
+    .topbar h1 .block {
+      display: inline-block; width: 16px; height: 16px;
+      background: var(--yellow);
+      border: 2px solid var(--bg);
     }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .status-live {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .status-live .dot {
+      width: 8px; height: 8px; background: var(--green);
+      border: 1px solid var(--bg);
+      animation: blink 1.2s infinite;
+    }
+    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0.2} }
 
     /* --- Layout --- */
-    .container { max-width: 960px; margin: 0 auto; padding: 24px 16px; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 32px 16px; }
 
     .section {
       background: var(--card);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius);
+      border: 3px solid var(--ink);
       padding: 24px;
-      margin-bottom: 20px;
-      box-shadow: 0 1px 2px rgba(17,24,39,0.04);
-      animation: fadeUp 0.35s ease;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+      animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translate(-4px, -4px); }
+      to { opacity: 1; transform: translate(0, 0); }
+    }
 
     .section-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--ink);
     }
     .section-header h2 {
-      font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
-      display: flex; align-items: center; gap: 8px;
+      font-family: 'Syne', sans-serif;
+      font-size: 20px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 10px;
     }
-    .section-header h2 svg { width: 18px; height: 18px; color: var(--text-muted); }
+    .section-header h2::before {
+      content: ''; display: inline-block;
+      width: 14px; height: 14px; background: var(--ink);
+    }
     .count-badge {
-      background: #F3F4F6; color: var(--text-muted);
-      font-size: 12px; font-weight: 600; padding: 2px 10px;
-      border-radius: 4px; border: 1px solid var(--card-border);
+      background: var(--yellow);
+      border: 2px solid var(--ink);
+      color: var(--ink);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 700;
+      padding: 3px 10px;
+      box-shadow: var(--shadow-pressed);
     }
 
     /* --- Form --- */
     .add-form {
-      display: flex; gap: 10px; margin-bottom: 20px;
+      display: flex; gap: 12px; margin-bottom: 20px;
     }
     .add-form input {
-      flex: 1; padding: 10px 14px;
-      background: var(--input-bg); border: 1px solid var(--card-border-strong);
-      border-radius: 6px; color: var(--text); font-size: 14px;
-      outline: none; transition: all 0.15s;
+      flex: 1; padding: 12px 14px;
+      background: var(--card);
+      border: 2px solid var(--ink);
+      border-radius: 0;
+      color: var(--ink); font-size: 15px; font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      box-shadow: var(--shadow-pressed);
+      transition: all 0.1s;
     }
-    .add-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-    .add-form input::placeholder { color: var(--text-dim); }
+    .add-form input:focus {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
+    .add-form input::placeholder { color: var(--muted); font-weight: 400; }
     .add-form button {
-      padding: 10px 20px; background: var(--accent); color: white;
-      border: 1px solid var(--accent); border-radius: 6px; font-size: 14px; font-weight: 600;
-      cursor: pointer; white-space: nowrap; transition: all 0.15s;
+      padding: 12px 22px;
+      background: var(--primary); color: #FFF;
+      border: 2px solid var(--ink); border-radius: 0;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      cursor: pointer; white-space: nowrap;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.08s;
     }
-    .add-form button:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .add-form button:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+    .add-form button:active { transform: translate(2px, 2px); box-shadow: var(--shadow-pressed); }
 
     /* --- Table --- */
-    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -24px; padding: 0 24px; }
+    .table-wrap {
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      border: 2px solid var(--ink);
+    }
     table { width: 100%; border-collapse: collapse; min-width: 500px; }
     th {
-      text-align: left; padding: 10px 12px;
-      font-size: 11px; font-weight: 600; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.05em;
-      border-bottom: 1px solid var(--card-border);
-      background: #F9FAFB;
+      text-align: left; padding: 10px 14px;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      background: var(--ink); color: var(--bg);
+      font-family: 'JetBrains Mono', monospace;
     }
+    th + th { border-left: 1px solid var(--bg); }
     td {
-      padding: 12px; border-bottom: 1px solid var(--card-border);
-      font-size: 14px; color: var(--text);
+      padding: 12px 14px;
+      font-size: 14px; color: var(--ink);
+      border-bottom: 1px solid var(--ink);
+      background: var(--card);
     }
+    td + td { border-left: 1px solid var(--ink); }
     tr:last-child td { border-bottom: none; }
-    tbody tr:hover { background: #F9FAFB; }
-    .emp-name { font-weight: 600; }
+    tbody tr:hover td { background: var(--yellow-soft); }
+    .emp-name { font-weight: 700; text-transform: uppercase; letter-spacing: -0.01em; }
 
     /* --- Badges --- */
     .badge {
       display: inline-flex; align-items: center; gap: 5px;
-      padding: 2px 8px; border-radius: 4px;
-      font-size: 11px; font-weight: 600;
-      border: 1px solid transparent;
+      padding: 3px 8px;
+      border: 2px solid var(--ink);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
     }
-    .badge .dot { width: 6px; height: 6px; border-radius: 50%; }
-    .badge.in { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
-    .badge.in .dot { background: var(--green); }
-    .badge.out { background: var(--red-bg); color: var(--red); border-color: var(--red-border); }
-    .badge.out .dot { background: var(--red); }
-    .badge.wifi { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
-    .badge.geo-fallback { background: var(--yellow-bg); color: var(--yellow); border-color: var(--yellow-border); }
+    .badge .dot { width: 6px; height: 6px; border: 1px solid var(--ink); }
+    .badge.in { background: var(--green); }
+    .badge.in .dot { background: var(--ink); }
+    .badge.out { background: var(--red); color: #FFF; }
+    .badge.out .dot { background: #FFF; }
+    .badge.wifi { background: var(--green-soft); }
+    .badge.geo-fallback { background: var(--yellow); }
 
     /* --- Action buttons --- */
     .actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .actions button {
-      padding: 6px 12px; border: 1px solid var(--card-border-strong);
-      border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;
-      background: var(--card); color: var(--text); transition: all 0.15s;
+      padding: 6px 12px;
+      border: 2px solid var(--ink);
+      border-radius: 0;
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+      font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      background: var(--card); color: var(--ink);
+      transition: all 0.08s;
+      box-shadow: var(--shadow-pressed);
     }
-    .actions button:hover { background: #F9FAFB; border-color: #9CA3AF; }
-    .actions .btn-delete { border-color: var(--red-border); color: var(--red); }
-    .actions .btn-delete:hover { background: var(--red-bg); border-color: var(--red); }
+    .actions button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+    .actions button:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+    .actions .btn-delete { background: var(--red); color: #FFF; }
 
     /* --- Filters --- */
     .filter-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-row input, .filter-row select {
       padding: 8px 12px;
-      background: var(--input-bg); border: 1px solid var(--card-border-strong);
-      border-radius: 6px; color: var(--text); font-size: 14px; outline: none;
-      transition: all 0.15s;
+      background: var(--card); border: 2px solid var(--ink);
+      border-radius: 0; color: var(--ink); font-size: 14px;
+      font-family: 'Inter', sans-serif; outline: none;
+      box-shadow: var(--shadow-pressed);
+      transition: all 0.1s;
     }
-    .filter-row input:focus, .filter-row select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .filter-row input:focus, .filter-row select:focus {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 var(--ink);
+    }
 
     /* --- Modal --- */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(17,24,39,0.5); backdrop-filter: blur(2px);
+      background: rgba(17,17,17,0.6);
       z-index: 100; justify-content: center; align-items: center;
       padding: 20px;
     }
     .modal-overlay.active { display: flex; }
     .modal {
-      background: var(--card); border: 1px solid var(--card-border);
-      border-radius: 8px; padding: 32px 28px;
+      background: var(--card); border: 3px solid var(--ink);
+      border-radius: 0; padding: 28px 24px;
       text-align: center; max-width: 380px; width: 100%;
-      box-shadow: 0 20px 25px -5px rgba(17,24,39,0.1), 0 8px 10px -6px rgba(17,24,39,0.1);
-      animation: fadeUp 0.2s ease;
+      box-shadow: 8px 8px 0 var(--ink);
+      animation: slideIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: var(--text); }
+    .modal h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px; font-weight: 800; margin-bottom: 16px;
+      text-transform: uppercase; letter-spacing: -0.02em;
+    }
     .modal .qr-container {
-      background: #FFFFFF; border: 1px solid var(--card-border);
-      border-radius: 6px; padding: 12px;
+      background: #FFFFFF;
+      border: 3px solid var(--ink);
+      padding: 12px;
       display: inline-block; margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
     }
     .modal img { width: 220px; height: 220px; display: block; }
     .modal .url {
-      font-size: 11px; color: var(--text-muted);
+      font-size: 11px; color: var(--muted);
       word-break: break-all; margin-bottom: 20px;
-      font-family: 'SF Mono', 'Consolas', monospace;
-      background: #F9FAFB; padding: 8px; border-radius: 4px;
-      border: 1px solid var(--card-border);
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg);
+      border: 2px solid var(--ink);
+      padding: 8px;
     }
     .modal-btns { display: flex; gap: 8px; }
     .modal-btns button {
-      flex: 1; padding: 10px; border: 1px solid transparent; border-radius: 6px;
-      cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.15s;
+      flex: 1; padding: 10px;
+      border: 2px solid var(--ink); border-radius: 0;
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+      font-size: 13px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      box-shadow: var(--shadow-pressed);
+      transition: all 0.08s;
     }
-    .btn-dl { background: var(--accent); color: white; border-color: var(--accent); }
-    .btn-dl:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-    .btn-print-modal { background: var(--card); color: var(--text); border-color: var(--card-border-strong); }
-    .btn-print-modal:hover { background: #F9FAFB; }
-    .btn-close { background: var(--card); color: var(--text-muted); border-color: var(--card-border-strong); }
-    .btn-close:hover { background: #F9FAFB; color: var(--text); }
+    .modal-btns button:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+    .modal-btns button:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 var(--ink); }
+    .btn-dl { background: var(--primary); color: #FFF; }
+    .btn-print-modal { background: var(--yellow); color: var(--ink); }
+    .btn-close { background: var(--card); color: var(--ink); }
 
     .empty-state {
-      text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 14px;
+      text-align: center; padding: 32px 16px;
+      color: var(--muted); font-size: 13px;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase; letter-spacing: 0.1em;
     }
 
     /* Responsive */
     @media (max-width: 600px) {
-      .section { padding: 16px; }
-      .table-wrap { margin: 0 -16px; padding: 0 16px; }
+      .container { padding: 20px 12px; }
+      .section { padding: 18px; }
       .add-form { flex-direction: column; }
       .add-form button { width: 100%; }
-      .modal { padding: 24px 20px; }
+      .modal { padding: 22px 18px; }
       .modal img { width: 180px; height: 180px; }
       .modal-btns { flex-direction: column; }
+      .topbar h1 { font-size: 16px; }
     }
   </style>
 </head>
@@ -224,10 +305,13 @@
   <div class="topbar">
     <div class="topbar-inner">
       <h1>
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-        Attendance
+        <span class="block"></span>
+        ATTENDANCE.SYS
       </h1>
-      <div class="live-dot" title="System Online"></div>
+      <div class="status-live">
+        <span class="dot"></span>
+        ONLINE
+      </div>
     </div>
   </div>
 
@@ -235,19 +319,16 @@
     <!-- Employees -->
     <div class="section">
       <div class="section-header">
-        <h2>
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-          Employees
-        </h2>
+        <h2>Employees</h2>
         <span class="count-badge" id="empCount">0</span>
       </div>
       <div class="add-form">
         <input type="text" id="empName" placeholder="Enter employee name..." onkeydown="if(event.key==='Enter')addEmployee()">
-        <button onclick="addEmployee()">Add Employee</button>
+        <button onclick="addEmployee()">+ Add</button>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Name</th><th>QR Code</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Name</th><th>QR</th><th>Actions</th></tr></thead>
           <tbody id="empList"></tbody>
         </table>
       </div>
@@ -256,10 +337,7 @@
     <!-- Attendance -->
     <div class="section">
       <div class="section-header">
-        <h2>
-          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-          Attendance Log
-        </h2>
+        <h2>Attendance Log</h2>
       </div>
       <div class="filter-row">
         <input type="date" id="filterDate" onchange="loadAttendance()">
@@ -299,11 +377,11 @@
       const res = await fetch('/api/employees');
       employees = await res.json();
 
-      document.getElementById('empCount').textContent = employees.length;
+      document.getElementById('empCount').textContent = String(employees.length).padStart(2, '0');
 
       const list = document.getElementById('empList');
       if (employees.length === 0) {
-        list.innerHTML = '<tr><td colspan="3"><div class="empty-state">No employees yet. Add one above.</div></td></tr>';
+        list.innerHTML = '<tr><td colspan="3"><div class="empty-state">// No employees yet</div></td></tr>';
       } else {
         list.innerHTML = employees.map(e => `
           <tr>
@@ -323,7 +401,6 @@
         `).join('');
       }
 
-      // Update filter
       const select = document.getElementById('filterEmployee');
       const current = select.value;
       select.innerHTML = '<option value="">All Employees</option>' +
@@ -352,7 +429,7 @@
       });
 
       input.value = '';
-      btn.disabled = false; btn.textContent = 'Add Employee';
+      btn.disabled = false; btn.textContent = '+ Add';
       loadEmployees();
     }
 
@@ -392,10 +469,14 @@
       const printWin = window.open('', '_blank');
       printWin.document.write(`
         <html><body style="text-align:center;font-family:-apple-system,sans-serif;padding:60px 40px;">
-          <h1 style="font-size:28px;margin-bottom:8px;">${name}</h1>
-          <p style="color:#666;margin-bottom:32px;font-size:14px;">Employee Attendance</p>
-          <img src="${img}" style="width:280px;height:280px;">
-          <p style="color:#999;margin-top:24px;font-size:13px;">Scan this QR code to clock in/out</p>
+          <div style="border:4px solid #111;display:inline-block;padding:40px;">
+            <h1 style="font-size:28px;margin-bottom:8px;text-transform:uppercase;letter-spacing:-0.02em;">${name}</h1>
+            <p style="color:#666;margin-bottom:24px;font-size:13px;text-transform:uppercase;letter-spacing:0.1em;">// Employee QR</p>
+            <div style="border:3px solid #111;display:inline-block;padding:12px;">
+              <img src="${img}" style="width:260px;height:260px;display:block;">
+            </div>
+            <p style="color:#666;margin-top:20px;font-size:12px;text-transform:uppercase;letter-spacing:0.1em;">Scan to clock in/out</p>
+          </div>
         </body></html>
       `);
       printWin.document.close();
@@ -415,26 +496,25 @@
 
       const list = document.getElementById('attendanceList');
       if (records.length === 0) {
-        list.innerHTML = '<tr><td colspan="5"><div class="empty-state">No records for this date.</div></td></tr>';
+        list.innerHTML = '<tr><td colspan="5"><div class="empty-state">// No records</div></td></tr>';
       } else {
         list.innerHTML = records.map(r => {
           const isGeoFallback = r.verification === 'geo-fallback';
           const verClass = isGeoFallback ? 'geo-fallback' : 'wifi';
-          const verLabel = isGeoFallback ? 'GPS Fallback' : 'WiFi';
+          const verLabel = isGeoFallback ? 'GPS' : 'WiFi';
           return `
             <tr>
               <td class="emp-name">${r.employeeId ? esc(r.employeeId.name) : 'Unknown'}</td>
               <td><span class="badge ${r.type}"><span class="dot"></span>${r.type === 'in' ? 'IN' : 'OUT'}</span></td>
-              <td>${new Date(r.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+              <td style="font-family:'JetBrains Mono',monospace;font-size:13px;">${new Date(r.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
               <td><span class="badge ${verClass}">${verLabel}</span></td>
-              <td style="color:var(--text-muted);font-family:monospace;font-size:12px;">${r.ip || '-'}</td>
+              <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px;">${r.ip || '-'}</td>
             </tr>
           `;
         }).join('');
       }
     }
 
-    // Init
     document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
     loadEmployees();
     loadAttendance();
