@@ -174,8 +174,10 @@ app.get('/api/qr/:token', async (req, res) => {
 // Attendance log
 app.get('/api/attendance', async (req, res) => {
   try {
-    const { date, startDate, endDate, employeeId } = req.query;
+    const { date, startDate, endDate, employeeId, page = 1, limit = 50 } = req.query;
     const filter = {};
+    const pageNum = Math.max(1, parseInt(page));
+    const pageSize = Math.min(100, Math.max(1, parseInt(limit)));
 
     if (employeeId) filter.employeeId = employeeId;
 
@@ -191,12 +193,24 @@ app.get('/api/attendance', async (req, res) => {
       filter.timestamp = { $gte: start, $lt: end };
     }
 
+    const total = await Attendance.countDocuments(filter);
     const records = await Attendance.find(filter)
       .populate('employeeId', 'name')
       .sort({ timestamp: -1 })
-      .limit(200);
+      .skip((pageNum - 1) * pageSize)
+      .limit(pageSize);
 
-    res.json(records);
+    const totalPages = Math.ceil(total / pageSize);
+
+    res.json({
+      records,
+      pagination: {
+        page: pageNum,
+        limit: pageSize,
+        total,
+        totalPages
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

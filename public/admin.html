@@ -652,9 +652,9 @@ Ahmed Adams,out,2026-04-07 17:30
         <h2>Attendance Range</h2>
       </div>
       <div class="filter-row" style="margin-top:20px;">
-        <input type="date" id="rangeStartDate" onchange="loadRangeAttendance()">
-        <input type="date" id="rangeEndDate" onchange="loadRangeAttendance()">
-        <select id="rangeEmployee" onchange="loadRangeAttendance()">
+        <input type="date" id="rangeStartDate" onchange="document.getElementById('rangePage').value=1; loadRangeAttendance()">
+        <input type="date" id="rangeEndDate" onchange="document.getElementById('rangePage').value=1; loadRangeAttendance()">
+        <select id="rangeEmployee" onchange="document.getElementById('rangePage').value=1; loadRangeAttendance()">
           <option value="">All Employees</option>
         </select>
       </div>
@@ -666,6 +666,13 @@ Ahmed Adams,out,2026-04-07 17:30
           <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>Verified</th><th>IP</th></tr></thead>
           <tbody id="rangeAttendanceList"></tbody>
         </table>
+      </div>
+      <!-- Pagination Controls -->
+      <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px;">
+        <button id="prevPageBtn" onclick="goToPage(-1)" style="padding: 8px 16px; border: 2px solid var(--ink); background: var(--card); cursor: pointer; font-weight: 600;">← Previous</button>
+        <span id="pageInfo" style="font-family:'JetBrains Mono',monospace; font-weight: 600; min-width: 250px; text-align: center;">Page 1 of 1</span>
+        <button id="nextPageBtn" onclick="goToPage(1)" style="padding: 8px 16px; border: 2px solid var(--ink); background: var(--card); cursor: pointer; font-weight: 600;">Next →</button>
+        <input type="hidden" id="rangePage" value="1">
       </div>
     </div>
   </div>
@@ -853,14 +860,19 @@ Ahmed Adams,out,2026-04-07 17:30
       const startDate = document.getElementById('rangeStartDate').value;
       const endDate = document.getElementById('rangeEndDate').value;
       const employeeId = document.getElementById('rangeEmployee').value;
+      const currentPage = parseInt(document.getElementById('rangePage')?.value || '1');
 
       const params = new URLSearchParams();
       if (startDate) params.set('startDate', startDate);
       if (endDate) params.set('endDate', endDate);
       if (employeeId) params.set('employeeId', employeeId);
+      params.set('page', currentPage);
+      params.set('limit', 25);
 
       const res = await fetch(`/api/attendance?${params}`);
-      const records = await res.json();
+      const data = await res.json();
+      const records = data.records || [];
+      const pagination = data.pagination || { page: 1, total: 0, totalPages: 1 };
 
       const list = document.getElementById('rangeAttendanceList');
       if (!records || records.length === 0) {
@@ -881,6 +893,19 @@ Ahmed Adams,out,2026-04-07 17:30
           `;
         }).join('');
       }
+
+      // Update pagination controls
+      document.getElementById('rangePage').value = pagination.page;
+      document.getElementById('pageInfo').textContent = `Page ${pagination.page} of ${pagination.totalPages} (${pagination.total} total records)`;
+      document.getElementById('prevPageBtn').disabled = pagination.page <= 1;
+      document.getElementById('nextPageBtn').disabled = pagination.page >= pagination.totalPages;
+    }
+
+    function goToPage(delta) {
+      const currentPage = parseInt(document.getElementById('rangePage').value || '1');
+      const newPage = Math.max(1, currentPage + delta);
+      document.getElementById('rangePage').value = newPage;
+      loadRangeAttendance();
     }
 
     // --- Manual attendance entry ---
