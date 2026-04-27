@@ -646,6 +646,28 @@ Ahmed Adams,out,2026-04-07 17:30
         </table>
       </div>
     </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2>Attendance Range</h2>
+      </div>
+      <div class="filter-row" style="margin-top:20px;">
+        <input type="date" id="rangeStartDate" onchange="loadRangeAttendance()">
+        <input type="date" id="rangeEndDate" onchange="loadRangeAttendance()">
+        <select id="rangeEmployee" onchange="loadRangeAttendance()">
+          <option value="">All Employees</option>
+        </select>
+      </div>
+      <div style="margin: 15px 0; display: flex; gap: 10px;">
+        <button onclick="exportToPDF('range')" class="btn-export" style="background: #16A34A; color: white; padding: 10px 16px; border: 2px solid #111; cursor: pointer; font-weight: 600;">📥 Export to PDF</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>Verified</th><th>IP</th></tr></thead>
+          <tbody id="rangeAttendanceList"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- QR Modal -->
@@ -700,6 +722,12 @@ Ahmed Adams,out,2026-04-07 17:30
       select.innerHTML = '<option value="">All Employees</option>' +
         employees.map(e => `<option value="${e._id}">${esc(e.name)}</option>`).join('');
       select.value = current;
+
+      const rangeSelect = document.getElementById('rangeEmployee');
+      const rangeCurrent = rangeSelect.value;
+      rangeSelect.innerHTML = '<option value="">All Employees</option>' +
+        employees.map(e => `<option value="${e._id}">${esc(e.name)}</option>`).join('');
+      rangeSelect.value = rangeCurrent;
 
       // Also populate manual-entry employee dropdown
       const manualSelect = document.getElementById('manualEmployee');
@@ -815,6 +843,40 @@ Ahmed Adams,out,2026-04-07 17:30
               <td><span class="badge ${verClass}">${verLabel}</span></td>
               <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px;">${r.ip || '-'}</td>
               <td><button class="row-delete" onclick="deleteRecord('${r._id}')" title="Delete record">✕</button></td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    async function loadRangeAttendance() {
+      const startDate = document.getElementById('rangeStartDate').value;
+      const endDate = document.getElementById('rangeEndDate').value;
+      const employeeId = document.getElementById('rangeEmployee').value;
+
+      const params = new URLSearchParams();
+      if (startDate) params.set('startDate', startDate);
+      if (endDate) params.set('endDate', endDate);
+      if (employeeId) params.set('employeeId', employeeId);
+
+      const res = await fetch(`/api/attendance?${params}`);
+      const records = await res.json();
+
+      const list = document.getElementById('rangeAttendanceList');
+      if (!records || records.length === 0) {
+        list.innerHTML = '<tr><td colspan="5"><div class="empty-state">// No records for selected range</div></td></tr>';
+      } else {
+        list.innerHTML = records.map(r => {
+          const isGeoFallback = r.verification === 'geo-fallback';
+          const verClass = isGeoFallback ? 'geo-fallback' : 'wifi';
+          const verLabel = isGeoFallback ? 'GPS' : 'WiFi';
+          return `
+            <tr>
+              <td class="emp-name">${r.employeeId ? esc(r.employeeId.name) : 'Unknown'}</td>
+              <td><span class="badge ${r.type}"><span class="dot"></span>${r.type === 'in' ? 'IN' : 'OUT'}</span></td>
+              <td style="font-family:'JetBrains Mono',monospace;font-size:13px;">${new Date(r.timestamp).toLocaleString([], {year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</td>
+              <td><span class="badge ${verClass}">${verLabel}</span></td>
+              <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:12px;">${r.ip || '-'}</td>
             </tr>
           `;
         }).join('');
@@ -1010,9 +1072,38 @@ Ahmed Adams,out,2026-04-07 17:30
       }
     }
 
-    document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+    // PDF Export function
+    async function exportToPDF(rangeType) {
+      const startDate = document.getElementById('rangeStartDate').value;
+      const endDate = document.getElementById('rangeEndDate').value;
+
+      if (!startDate || !endDate) {
+        alert('Please select both start and end dates');
+        return;
+      }
+
+      try {
+        const params = new URLSearchParams({
+          startDate: startDate,
+          endDate: endDate
+        });
+
+        const url = `/api/export/pdf?${params.toString()}`;
+        window.location.href = url;
+      } catch (err) {
+        alert('Error exporting PDF: ' + err.message);
+      }
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const weekAgo = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    document.getElementById('filterDate').value = today;
+    document.getElementById('rangeStartDate').value = weekAgo;
+    document.getElementById('rangeEndDate').value = today;
+
     loadEmployees();
     loadAttendance();
+    loadRangeAttendance();
     loadAnalytics();
   </script>
 </body>
