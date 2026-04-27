@@ -558,31 +558,34 @@
     </div>
 
     <!-- Analytics -->
-    <div class="section">
-      <div class="section-header">
+    <div class="section collapsed" id="sectionAnalytics">
+      <div class="section-header collapsible" onclick="toggleSection('sectionAnalytics')">
         <h2>Analytics</h2>
+        <span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
       </div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Total Clock-ins (14d)</div>
-          <div class="stat-value" id="statTotal">—</div>
+      <div class="section-body">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Clock-ins (14d)</div>
+            <div class="stat-value" id="statTotal">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active This Week</div>
+            <div class="stat-value" id="statActive">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Avg Hours / Employee</div>
+            <div class="stat-value" id="statAvg">—</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Active This Week</div>
-          <div class="stat-value" id="statActive">—</div>
+        <div class="chart-box">
+          <div class="chart-title">// Daily clock-ins (last 14 days)</div>
+          <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Avg Hours / Employee</div>
-          <div class="stat-value" id="statAvg">—</div>
+        <div class="chart-box">
+          <div class="chart-title">// Hours worked this week</div>
+          <div class="chart-wrap"><canvas id="hoursChart"></canvas></div>
         </div>
-      </div>
-      <div class="chart-box">
-        <div class="chart-title">// Daily clock-ins (last 14 days)</div>
-        <div class="chart-wrap"><canvas id="dailyChart"></canvas></div>
-      </div>
-      <div class="chart-box">
-        <div class="chart-title">// Hours worked this week</div>
-        <div class="chart-wrap"><canvas id="hoursChart"></canvas></div>
       </div>
     </div>
 
@@ -647,32 +650,35 @@ Ahmed Adams,out,2026-04-07 17:30
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-header">
+    <div class="section collapsed" id="sectionRange">
+      <div class="section-header collapsible" onclick="toggleSection('sectionRange')">
         <h2>Attendance Range</h2>
+        <span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
       </div>
-      <div class="filter-row" style="margin-top:20px;">
-        <input type="date" id="rangeStartDate" onchange="document.getElementById('rangePage').value=1; loadRangeAttendance()">
-        <input type="date" id="rangeEndDate" onchange="document.getElementById('rangePage').value=1; loadRangeAttendance()">
-        <select id="rangeEmployee" onchange="document.getElementById('rangePage').value=1; loadRangeAttendance()">
-          <option value="">All Employees</option>
-        </select>
-      </div>
-      <div style="margin: 15px 0; display: flex; gap: 10px;">
-        <button onclick="exportToPDF('range')" class="btn-export" style="background: #16A34A; color: white; padding: 10px 16px; border: 2px solid #111; cursor: pointer; font-weight: 600;">  Export to PDF</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>Verified</th><th>IP</th></tr></thead>
-          <tbody id="rangeAttendanceList"></tbody>
-        </table>
-      </div>
-      <!-- Pagination Controls -->
-      <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px;">
-        <button id="prevPageBtn" onclick="goToPage(-1)" style="padding: 8px 16px; border: 2px solid var(--ink); background: var(--card); cursor: pointer; font-weight: 600;">← Previous</button>
-        <span id="pageInfo" style="font-family:'JetBrains Mono',monospace; font-weight: 600; min-width: 250px; text-align: center;">Page 1 of 1</span>
-        <button id="nextPageBtn" onclick="goToPage(1)" style="padding: 8px 16px; border: 2px solid var(--ink); background: var(--card); cursor: pointer; font-weight: 600;">Next →</button>
-        <input type="hidden" id="rangePage" value="1">
+      <div class="section-body">
+        <div class="filter-row" style="margin-top:20px;">
+          <input type="date" id="rangeStartDate" onchange="document.getElementById('rangePage').value=1; loadRangeAttendance()">
+          <input type="date" id="rangeEndDate" onchange="document.getElementById('rangePage').value=1; loadRangeAttendance()">
+          <select id="rangeEmployee" onchange="document.getElementById('rangePage').value=1; loadRangeAttendance()">
+            <option value="">All Employees</option>
+          </select>
+        </div>
+        <div style="margin: 15px 0; display: flex; gap: 10px;">
+          <button onclick="exportToPDF('range')" class="btn-export" style="background: #16A34A; color: white; padding: 10px 16px; border: 2px solid #111; cursor: pointer; font-weight: 600;">  Export to PDF</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>Verified</th><th>IP</th></tr></thead>
+            <tbody id="rangeAttendanceList"></tbody>
+          </table>
+        </div>
+        <!-- Pagination Controls -->
+        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 20px;">
+          <button id="prevPageBtn" onclick="goToPage(-1)" style="padding: 8px 16px; border: 2px solid var(--ink); background: var(--card); cursor: pointer; font-weight: 600;">← Previous</button>
+          <span id="pageInfo" style="font-family:'JetBrains Mono',monospace; font-weight: 600; min-width: 250px; text-align: center;">Page 1 of 1</span>
+          <button id="nextPageBtn" onclick="goToPage(1)" style="padding: 8px 16px; border: 2px solid var(--ink); background: var(--card); cursor: pointer; font-weight: 600;">Next →</button>
+          <input type="hidden" id="rangePage" value="1">
+        </div>
       </div>
     </div>
   </div>
