@@ -16,7 +16,7 @@ You can now export all attendance records to a professionally formatted PDF with
 ### From Admin Dashboard
 1. Navigate to the **"Attendance Range"** section at the bottom of the admin page
 2. Select **Start Date** and **End Date** for the period you want to export
-3. Click the **"📥 Export to PDF"** button
+3. Click the **"  Export to PDF"** button
 4. The PDF will automatically download to your default download folder
 
 ### Programmatically (API)
@@ -55,17 +55,17 @@ The generated PDF includes:
 ### Export March 2026 Data
 1. Start Date: `2026-03-01`
 2. End Date: `2026-03-31`
-3. Click "📥 Export to PDF"
+3. Click "  Export to PDF"
 
 ### Export Last 7 Days
 1. Start Date: (today - 7 days)
 2. End Date: (today)
-3. Click "📥 Export to PDF"
+3. Click "  Export to PDF"
 
 ### Export Specific Date
 1. Use the single date input in "Attendance Log" section, OR
 2. Set both Start and End dates to the same date
-3. Click "📥 Export to PDF"
+3. Click "  Export to PDF"
 
 ## Technical Details
 - Library: PDFKit (Node.js)
