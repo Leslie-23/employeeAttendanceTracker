@@ -614,39 +614,41 @@ Ahmed Adams,out,2026-04-07 17:30
     </div>
 
     <!-- Attendance -->
-    <div class="section">
-      <div class="section-header">
+    <div class="section collapsed" id="sectionAttendanceLog">
+      <div class="section-header collapsible" onclick="toggleSection('sectionAttendanceLog')">
         <h2>Attendance Log</h2>
+        <span class="chevron" aria-hidden="true"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
       </div>
-
-      <!-- Manual add form -->
-      <div class="manual-add">
-        <div class="chart-title" style="margin-bottom:10px;">// Add record manually</div>
-        <div class="manual-row">
-          <select id="manualEmployee">
-            <option value="">Select employee...</option>
-          </select>
-          <select id="manualType">
-            <option value="in">Clock IN</option>
-            <option value="out">Clock OUT</option>
-          </select>
-          <input type="datetime-local" id="manualTime">
-          <button onclick="addManualRecord()" class="manual-btn">+ Add Record</button>
+      <div class="section-body">
+        <!-- Manual add form -->
+        <div class="manual-add">
+          <div class="chart-title" style="margin-bottom:10px;">// Add record manually</div>
+          <div class="manual-row">
+            <select id="manualEmployee">
+              <option value="">Select employee...</option>
+            </select>
+            <select id="manualType">
+              <option value="in">Clock IN</option>
+              <option value="out">Clock OUT</option>
+            </select>
+            <input type="datetime-local" id="manualTime">
+            <button onclick="addManualRecord()" class="manual-btn">+ Add Record</button>
+          </div>
+          <div id="manualResult" class="manual-result"></div>
         </div>
-        <div id="manualResult" class="manual-result"></div>
-      </div>
 
-      <div class="filter-row" style="margin-top:20px;">
-        <input type="date" id="filterDate" onchange="loadAttendance()">
-        <select id="filterEmployee" onchange="loadAttendance()">
-          <option value="">All Employees</option>
-        </select>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>Verified</th><th>IP</th><th></th></tr></thead>
-          <tbody id="attendanceList"></tbody>
-        </table>
+        <div class="filter-row" style="margin-top:20px;">
+          <input type="date" id="filterDate" onchange="loadAttendance()">
+          <select id="filterEmployee" onchange="loadAttendance()">
+            <option value="">All Employees</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Employee</th><th>Type</th><th>Time</th><th>Verified</th><th>IP</th><th></th></tr></thead>
+            <tbody id="attendanceList"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
