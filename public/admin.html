@@ -840,7 +840,8 @@ Ahmed Adams,out,2026-04-07 17:30
       if (employeeId) params.set('employeeId', employeeId);
 
       const res = await fetch(`/api/attendance?${params}`);
-      const records = await res.json();
+      const data = await res.json();
+      const records = data.records || [];
 
       const list = document.getElementById('attendanceList');
       if (records.length === 0) {
