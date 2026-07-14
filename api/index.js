@@ -81,6 +81,26 @@ function dayBounds(date = new Date()) {
   };
 }
 
+function weekBounds(date = new Date()) {
+  const end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = end.getUTCDay();
+  const daysSinceMonday = (day + 6) % 7;
+  end.setUTCDate(end.getUTCDate() - daysSinceMonday);
+
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - 7);
+
+  const reportEnd = new Date(start);
+  reportEnd.setUTCDate(reportEnd.getUTCDate() + 5);
+  reportEnd.setUTCHours(23, 59, 59, 999);
+
+  return {
+    key: `${dateKey(start)}_${dateKey(reportEnd)}`,
+    start,
+    end: reportEnd
+  };
+}
+
 function parseJsonEnv(name, fallback = {}) {
   const value = process.env[name];
   if (!value) return fallback;
@@ -108,6 +128,69 @@ function getReminderStage(req) {
 
   const now = new Date();
   return now.getUTCMinutes() < 50 ? 'opening-745' : 'opening-750';
+}
+
+function isWorkday(date) {
+  const day = date.getUTCDay();
+  return day >= 1 && day <= 6;
+}
+
+function formatHours(hours) {
+  return `${Math.round(hours * 10) / 10}h`;
+}
+
+function summarizeEmployeeWeek(employee, records, start, end) {
+  const byDate = new Map();
+  for (const record of records) {
+    const key = dateKey(record.timestamp);
+    if (!byDate.has(key)) byDate.set(key, []);
+    byDate.get(key).push(record);
+  }
+
+  let expectedDays = 0;
+  let presentDays = 0;
+  let completeDays = 0;
+  let missingDays = 0;
+  let lateOpenings = 0;
+  let openShifts = 0;
+  let hours = 0;
+
+  for (let cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    if (!isWorkday(cursor)) continue;
+    expectedDays++;
+
+    const dayRecords = (byDate.get(dateKey(cursor)) || []).sort((a, b) => a.timestamp - b.timestamp);
+    const firstIn = dayRecords.find((record) => record.type === 'in');
+    const lastOut = [...dayRecords].reverse().find((record) => record.type === 'out');
+
+    if (!firstIn && !lastOut) {
+      missingDays++;
+      continue;
+    }
+
+    presentDays++;
+    if (firstIn && (firstIn.timestamp.getUTCHours() > 7 || (firstIn.timestamp.getUTCHours() === 7 && firstIn.timestamp.getUTCMinutes() > 50))) {
+      lateOpenings++;
+    }
+
+    if (firstIn && lastOut && lastOut.timestamp > firstIn.timestamp) {
+      completeDays++;
+      hours += (lastOut.timestamp - firstIn.timestamp) / (1000 * 60 * 60);
+    } else {
+      openShifts++;
+    }
+  }
+
+  return {
+    name: employee.name,
+    expectedDays,
+    presentDays,
+    completeDays,
+    missingDays,
+    lateOpenings,
+    openShifts,
+    hours
+  };
 }
 
 function assertCronAuthorized(req) {
@@ -360,6 +443,79 @@ app.get('/api/cron/opening-reminders', async (req, res) => {
       clockedInCount: clockedIn.length,
       employeeResults: results,
       managerResult
+    });
+  } catch (err) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/api/cron/weekly-owner-report', async (req, res) => {
+  try {
+    assertCronAuthorized(req);
+
+    const ownerNumber = process.env.OWNER_WHATSAPP_NUMBER || null;
+    if (!ownerNumber) {
+      return res.json({ ok: true, skipped: true, reason: 'missing-owner-number' });
+    }
+
+    const { key, start, end } = weekBounds(new Date());
+    const employees = await Employee.find().sort({ name: 1 }).lean();
+    const records = await Attendance.find({
+      timestamp: { $gte: start, $lte: end }
+    }).sort({ timestamp: 1 }).lean();
+
+    const byEmployee = new Map();
+    for (const record of records) {
+      const id = String(record.employeeId);
+      if (!byEmployee.has(id)) byEmployee.set(id, []);
+      byEmployee.get(id).push(record);
+    }
+
+    const summaries = employees.map((employee) => summarizeEmployeeWeek(
+      employee,
+      byEmployee.get(String(employee._id)) || [],
+      start,
+      end
+    ));
+
+    const lines = summaries.map((summary) => [
+      `${summary.name}: ${summary.presentDays}/${summary.expectedDays} days`,
+      `${summary.completeDays} complete`,
+      `${formatHours(summary.hours)}`,
+      `${summary.lateOpenings} late`,
+      `${summary.openShifts} open`,
+      `${summary.missingDays} missing`
+    ].join(' | '));
+
+    const body = [
+      `Weekly attendance report`,
+      `${dateKey(start)} to ${dateKey(end)}`,
+      '',
+      ...lines,
+      '',
+      `${BASE_URL}/admin`
+    ].join('\n');
+
+    const result = await logReminderOnce(
+      {
+        date: key,
+        stage: 'weekly-owner',
+        employeeId: null,
+        employeeName: 'owner',
+        recipient: ownerNumber,
+        kind: 'owner'
+      },
+      () => sendWhatsAppText(ownerNumber, body)
+    );
+
+    res.json({
+      ok: true,
+      date: key,
+      start: dateKey(start),
+      end: dateKey(end),
+      ownerResult: result,
+      summaries
     });
   } catch (err) {
     const status = err.statusCode || 500;

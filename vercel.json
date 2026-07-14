@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/opening-reminders",
       "schedule": "50 7 * * 1-6"
+    },
+    {
+      "path": "/api/cron/weekly-owner-report",
+      "schedule": "30 8 * * 1"
     }
   ],
   "rewrites": [

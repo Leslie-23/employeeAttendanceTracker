@@ -2,11 +2,11 @@ const mongoose = require('mongoose');
 
 const reminderLogSchema = new mongoose.Schema({
   date: { type: String, required: true },
-  stage: { type: String, enum: ['opening-745', 'opening-750'], required: true },
+  stage: { type: String, enum: ['opening-745', 'opening-750', 'weekly-owner'], required: true },
   employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
   employeeName: String,
   recipient: { type: String, required: true },
-  kind: { type: String, enum: ['employee', 'manager'], required: true },
+  kind: { type: String, enum: ['employee', 'manager', 'owner'], required: true },
   status: { type: String, enum: ['sent', 'skipped', 'failed'], required: true },
   reason: String,
   providerMessageId: String,
