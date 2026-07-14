@@ -92,7 +92,9 @@ function parseJsonEnv(name, fallback = {}) {
 }
 
 function phoneForEmployee(employee, phoneMap) {
-  return phoneMap[employee.name] || phoneMap[employee.name.toLowerCase()] || null;
+  const value = phoneMap[employee.name] || phoneMap[employee.name.toLowerCase()] || null;
+  if (!value) return [];
+  return Array.isArray(value) ? value.filter(Boolean) : [value];
 }
 
 function getReminderStage(req) {
@@ -109,6 +111,9 @@ function getReminderStage(req) {
 }
 
 function assertCronAuthorized(req) {
+  const userAgent = req.headers['user-agent'] || '';
+  if (userAgent.includes('vercel-cron/1.0')) return;
+
   const secret = process.env.CRON_SECRET;
   if (!secret) return;
 
@@ -268,38 +273,55 @@ app.get('/api/cron/opening-reminders', async (req, res) => {
     const results = [];
 
     for (const employee of missing) {
-      const phone = phoneForEmployee(employee, phoneMap);
-      const recipient = phone || `missing-phone:${employee._id}`;
+      const phones = phoneForEmployee(employee, phoneMap);
       const checkpoint = stage === 'opening-745' ? '7:45' : '7:50';
       const body = [
         `Good morning ${employee.name}.`,
         `Attendance opening check (${checkpoint}): please clock in now if you are at the shop.`,
         `${BASE_URL}/clock/${employee.qrToken}`
       ].join('\n\n');
-      const send = phone
-        ? () => employeeTemplate
+
+      if (phones.length === 0) {
+        const result = await logReminderOnce(
+          {
+            date: key,
+            stage,
+            employeeId: employee._id,
+            employeeName: employee.name,
+            recipient: `missing-phone:${employee._id}`,
+            kind: 'employee',
+            reason: 'missing-phone-number'
+          },
+          null
+        );
+
+        results.push({ employee: employee.name, recipient: null, ...result });
+        continue;
+      }
+
+      for (const phone of phones) {
+        const send = () => employeeTemplate
           ? sendWhatsAppTemplate(phone, employeeTemplate, [employee.name, checkpoint, `${BASE_URL}/clock/${employee.qrToken}`])
-          : sendWhatsAppText(phone, body)
-        : null;
+          : sendWhatsAppText(phone, body);
 
-      const result = await logReminderOnce(
-        {
-          date: key,
-          stage,
-          employeeId: employee._id,
-          employeeName: employee.name,
-          recipient,
-          kind: 'employee',
-          reason: phone ? undefined : 'missing-phone-number'
-        },
-        send
-      );
+        const result = await logReminderOnce(
+          {
+            date: key,
+            stage,
+            employeeId: employee._id,
+            employeeName: employee.name,
+            recipient: phone,
+            kind: 'employee'
+          },
+          send
+        );
 
-      results.push({
-        employee: employee.name,
-        recipient: phone ? phone.replace(/\d(?=\d{4})/g, '*') : null,
-        ...result
-      });
+        results.push({
+          employee: employee.name,
+          recipient: phone.replace(/\d(?=\d{4})/g, '*'),
+          ...result
+        });
+      }
     }
 
     let managerResult = null;

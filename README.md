@@ -134,10 +134,10 @@ WHATSAPP_PHONE_NUMBER_ID    Meta phone number ID
 WHATSAPP_API_VERSION        v23.0
 WHATSAPP_TEMPLATE_LANGUAGE  en
 MANAGER_WHATSAPP_NUMBER     233XXXXXXXXX
-EMPLOYEE_WHATSAPP_NUMBERS   {"Rosemary N.":"233XXXXXXXXX","Daniel O.":"233XXXXXXXXX","LesliePaul":"233XXXXXXXXX"}
+EMPLOYEE_WHATSAPP_NUMBERS   {"Rosemary N.":"233XXXXXXXXX","Daniel O.":["233XXXXXXXXX","233YYYYYYYYY"],"LesliePaul":"233XXXXXXXXX"}
 ```
 
-WhatsApp numbers should be in international format without `+`.
+WhatsApp numbers should be in international format without `+`. Use an array when one employee has multiple WhatsApp numbers.
 
 Optional production template variables:
 
