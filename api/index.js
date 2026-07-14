@@ -454,8 +454,9 @@ app.get('/api/cron/weekly-owner-report', async (req, res) => {
   try {
     assertCronAuthorized(req);
 
+    const dryRun = req.query.dryRun === '1' || req.query.dryRun === 'true';
     const ownerNumber = process.env.OWNER_WHATSAPP_NUMBER || null;
-    if (!ownerNumber) {
+    if (!ownerNumber && !dryRun) {
       return res.json({ ok: true, skipped: true, reason: 'missing-owner-number' });
     }
 
@@ -496,6 +497,19 @@ app.get('/api/cron/weekly-owner-report', async (req, res) => {
       '',
       `${BASE_URL}/admin`
     ].join('\n');
+
+    if (dryRun) {
+      return res.json({
+        ok: true,
+        dryRun: true,
+        date: key,
+        start: dateKey(start),
+        end: dateKey(end),
+        recipientConfigured: !!ownerNumber,
+        preview: body,
+        summaries
+      });
+    }
 
     const result = await logReminderOnce(
       {
