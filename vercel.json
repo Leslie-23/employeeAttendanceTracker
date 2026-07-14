@@ -1,4 +1,14 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/opening-reminders",
+      "schedule": "45 7 * * 1-6"
+    },
+    {
+      "path": "/api/cron/opening-reminders",
+      "schedule": "50 7 * * 1-6"
+    }
+  ],
   "rewrites": [
     { "source": "/api/og", "destination": "/api/og" },
     { "source": "/api/(.*)", "destination": "/api" },

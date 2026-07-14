@@ -121,6 +121,33 @@ OFFICE_SUBNET      192.168.100  # local WiFi subnet prefix
 BASE_URL           https://your-deployment.vercel.app
 ```
 
+### WhatsApp opening reminders
+
+Vercel Cron calls `/api/cron/opening-reminders` Monday-Saturday at `07:45` and `07:50` UTC. The route checks who has not clocked in yet, sends those employees a WhatsApp reminder, and sends the manager a summary with a link to `/admin`.
+
+Required production environment variables:
+
+```
+CRON_SECRET                 long-random-string
+WHATSAPP_ACCESS_TOKEN       Meta WhatsApp Cloud API token
+WHATSAPP_PHONE_NUMBER_ID    Meta phone number ID
+WHATSAPP_API_VERSION        v23.0
+WHATSAPP_TEMPLATE_LANGUAGE  en
+MANAGER_WHATSAPP_NUMBER     233XXXXXXXXX
+EMPLOYEE_WHATSAPP_NUMBERS   {"Rosemary N.":"233XXXXXXXXX","Daniel O.":"233XXXXXXXXX","LesliePaul":"233XXXXXXXXX"}
+```
+
+WhatsApp numbers should be in international format without `+`.
+
+Optional production template variables:
+
+```
+WHATSAPP_EMPLOYEE_TEMPLATE_NAME attendance_opening_reminder
+WHATSAPP_MANAGER_TEMPLATE_NAME  attendance_opening_summary
+```
+
+Use approved WhatsApp templates for business-initiated reminders. The employee template body should accept `{name}`, `{checkpoint}`, and `{clockUrl}`. The manager template body should accept `{checkpoint}`, `{missingNames}`, `{clockedInNames}`, and `{adminUrl}`.
+
 ## Running Locally
 
 ```bash

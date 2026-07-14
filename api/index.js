@@ -6,6 +6,7 @@ const { randomUUID } = require('crypto');
 
 const Employee = require('../models/Employee');
 const Attendance = require('../models/Attendance');
+const ReminderLog = require('../models/ReminderLog');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -67,6 +68,154 @@ function isWithinGeofence(lat, lng) {
   return distanceMeters(OFFICE_LAT, OFFICE_LNG, lat, lng) <= GEOFENCE_RADIUS;
 }
 
+function dateKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function dayBounds(date = new Date()) {
+  const key = dateKey(date);
+  return {
+    key,
+    start: new Date(`${key}T00:00:00.000Z`),
+    end: new Date(`${key}T23:59:59.999Z`)
+  };
+}
+
+function parseJsonEnv(name, fallback = {}) {
+  const value = process.env[name];
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch (err) {
+    throw new Error(`${name} must be valid JSON`);
+  }
+}
+
+function phoneForEmployee(employee, phoneMap) {
+  return phoneMap[employee.name] || phoneMap[employee.name.toLowerCase()] || null;
+}
+
+function getReminderStage(req) {
+  if (req.query.stage === 'opening-745' || req.query.stage === 'opening-750') {
+    return req.query.stage;
+  }
+
+  const schedule = req.headers['x-vercel-cron-schedule'];
+  if (schedule === '45 7 * * 1-6') return 'opening-745';
+  if (schedule === '50 7 * * 1-6') return 'opening-750';
+
+  const now = new Date();
+  return now.getUTCMinutes() < 50 ? 'opening-745' : 'opening-750';
+}
+
+function assertCronAuthorized(req) {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return;
+
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (token === secret || req.query.secret === secret) return;
+
+  const err = new Error('Unauthorized');
+  err.statusCode = 401;
+  throw err;
+}
+
+async function sendWhatsAppPayload(payload) {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const apiVersion = process.env.WHATSAPP_API_VERSION || 'v23.0';
+
+  if (!token || !phoneNumberId) {
+    throw new Error('WhatsApp env vars are missing');
+  }
+
+  const res = await fetch(`https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error?.message || `WhatsApp API failed with ${res.status}`);
+  }
+
+  return data.messages?.[0]?.id || null;
+}
+
+async function sendWhatsAppText(to, body) {
+  return sendWhatsAppPayload({
+    messaging_product: 'whatsapp',
+    to,
+    type: 'text',
+    text: { preview_url: false, body }
+  });
+}
+
+async function sendWhatsAppTemplate(to, templateName, parameters) {
+  const languageCode = process.env.WHATSAPP_TEMPLATE_LANGUAGE || 'en';
+  return sendWhatsAppPayload({
+    messaging_product: 'whatsapp',
+    to,
+    type: 'template',
+    template: {
+      name: templateName,
+      language: { code: languageCode },
+      components: [
+        {
+          type: 'body',
+          parameters: parameters.map((text) => ({ type: 'text', text }))
+        }
+      ]
+    }
+  });
+}
+
+async function logReminderOnce(entry, send) {
+  const filter = {
+    date: entry.date,
+    stage: entry.stage,
+    recipient: entry.recipient,
+    employeeId: entry.employeeId,
+    kind: entry.kind
+  };
+
+  const existing = await ReminderLog.findOne({
+    ...filter,
+    status: { $in: ['sent', 'skipped'] }
+  }).lean();
+
+  if (existing) {
+    return { status: 'skipped', reason: 'already-logged', existingStatus: existing.status };
+  }
+
+  try {
+    const providerMessageId = send ? await send() : null;
+    await ReminderLog.updateOne(filter, {
+      $set: {
+        ...entry,
+        status: send ? 'sent' : 'skipped',
+        providerMessageId,
+        error: undefined
+      }
+    }, { upsert: true });
+    return { status: send ? 'sent' : 'skipped', providerMessageId };
+  } catch (err) {
+    await ReminderLog.updateOne(filter, {
+      $set: {
+        ...entry,
+        status: 'failed',
+        error: err.message
+      }
+    }, { upsert: true }).catch(() => {});
+    return { status: 'failed', error: err.message };
+  }
+}
+
 // Health check (no DB required) - hit /api/health to verify the function runs
 app.get('/api/health', (req, res) => {
   res.json({
@@ -89,6 +238,112 @@ app.use(async (req, res, next) => {
 });
 
 // --- API Routes ---
+
+app.get('/api/cron/opening-reminders', async (req, res) => {
+  try {
+    assertCronAuthorized(req);
+
+    const now = new Date();
+    const day = now.getUTCDay();
+    if (day === 0) {
+      return res.json({ ok: true, skipped: true, reason: 'sunday' });
+    }
+
+    const stage = getReminderStage(req);
+    const { key, start, end } = dayBounds(now);
+    const phoneMap = parseJsonEnv('EMPLOYEE_WHATSAPP_NUMBERS', {});
+    const managerNumber = process.env.MANAGER_WHATSAPP_NUMBER || null;
+    const employeeTemplate = process.env.WHATSAPP_EMPLOYEE_TEMPLATE_NAME || null;
+    const managerTemplate = process.env.WHATSAPP_MANAGER_TEMPLATE_NAME || null;
+
+    const employees = await Employee.find().sort({ name: 1 }).lean();
+    const todaysIns = await Attendance.find({
+      type: 'in',
+      timestamp: { $gte: start, $lte: end }
+    }).select('employeeId timestamp').lean();
+    const clockedInIds = new Set(todaysIns.map((record) => String(record.employeeId)));
+
+    const missing = employees.filter((employee) => !clockedInIds.has(String(employee._id)));
+    const clockedIn = employees.filter((employee) => clockedInIds.has(String(employee._id)));
+    const results = [];
+
+    for (const employee of missing) {
+      const phone = phoneForEmployee(employee, phoneMap);
+      const recipient = phone || `missing-phone:${employee._id}`;
+      const checkpoint = stage === 'opening-745' ? '7:45' : '7:50';
+      const body = [
+        `Good morning ${employee.name}.`,
+        `Attendance opening check (${checkpoint}): please clock in now if you are at the shop.`,
+        `${BASE_URL}/clock/${employee.qrToken}`
+      ].join('\n\n');
+      const send = phone
+        ? () => employeeTemplate
+          ? sendWhatsAppTemplate(phone, employeeTemplate, [employee.name, checkpoint, `${BASE_URL}/clock/${employee.qrToken}`])
+          : sendWhatsAppText(phone, body)
+        : null;
+
+      const result = await logReminderOnce(
+        {
+          date: key,
+          stage,
+          employeeId: employee._id,
+          employeeName: employee.name,
+          recipient,
+          kind: 'employee',
+          reason: phone ? undefined : 'missing-phone-number'
+        },
+        send
+      );
+
+      results.push({
+        employee: employee.name,
+        recipient: phone ? phone.replace(/\d(?=\d{4})/g, '*') : null,
+        ...result
+      });
+    }
+
+    let managerResult = null;
+    if (managerNumber) {
+      const missingNames = missing.map((employee) => employee.name).join(', ') || 'None';
+      const clockedInNames = clockedIn.map((employee) => employee.name).join(', ') || 'None';
+      const checkpoint = stage === 'opening-745' ? '7:45' : '7:50';
+      const body = [
+        `Opening attendance check (${checkpoint})`,
+        `Missing clock-in: ${missingNames}`,
+        `Clocked in: ${clockedInNames}`,
+        `${BASE_URL}/admin`
+      ].join('\n\n');
+      const send = managerTemplate
+        ? () => sendWhatsAppTemplate(managerNumber, managerTemplate, [checkpoint, missingNames, clockedInNames, `${BASE_URL}/admin`])
+        : () => sendWhatsAppText(managerNumber, body);
+
+      managerResult = await logReminderOnce(
+        {
+          date: key,
+          stage,
+          employeeId: null,
+          employeeName: 'manager',
+          recipient: managerNumber,
+          kind: 'manager'
+        },
+        send
+      );
+    }
+
+    res.json({
+      ok: true,
+      date: key,
+      stage,
+      missingCount: missing.length,
+      clockedInCount: clockedIn.length,
+      employeeResults: results,
+      managerResult
+    });
+  } catch (err) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ ok: false, error: err.message });
+  }
+});
 
 app.post('/api/clock/:token', async (req, res) => {
   try {
